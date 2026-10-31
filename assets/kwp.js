@@ -167,8 +167,11 @@ function ktAfb10(seed, c) {
 
 // ---- Web Serial transport ----
 class WebSerialKwp {
-  constructor(baud) {
+  // proto "kwp"  = K-line KWP2000* (8E1, DTR low, B8 header, XOR checksum)  -> Z4 GT3
+  // proto "fast" = BMW-FAST / D-CAN (8N1, DTR high, 0x80|len header, sum)   -> M3 (to confirm on the bench)
+  constructor(baud, proto) {
     this.baud = baud;
+    this.proto = proto || "kwp";
     this.kind = "serial";
     this.wait = 350;
     this.rx = [];
@@ -176,9 +179,14 @@ class WebSerialKwp {
 
   async connect() {
     this.port = await navigator.serial.requestPort();
-    await this.port.open({ baudRate: this.baud, dataBits: 8, parity: "even", stopBits: 1, flowControl: "none" });
+    const kline = this.proto === "kwp";
+    await this.port.open({
+      baudRate: this.baud, dataBits: 8,
+      parity: kline ? "even" : "none", stopBits: 1, flowControl: "none",
+    });
     try {
-      await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
+      // K-line holds DTR low; BMW-FAST / D-CAN holds it high
+      await this.port.setSignals({ dataTerminalReady: !kline, requestToSend: false });
     } catch (e) { /* some cables ignore signal control */ }
     this._pump();
   }
@@ -205,7 +213,20 @@ class WebSerialKwp {
     return x & 0xFF;
   }
 
+  sum(a) {
+    let s = 0;
+    for (const b of a) s = (s + b) & 0xFF;
+    return s;
+  }
+
   frame(p) {
+    if (this.proto === "fast") {
+      // BMW-FAST: [0x80|len] [tgt] [0xF1] data... [sum]
+      const f = [0x80 | p.length, TGT, 0xF1, ...p];
+      f.push(this.sum(f));
+      return Uint8Array.from(f);
+    }
+    // K-line KWP2000*: [0xB8] [tgt] [0xF1] [len] data... [xor]
     const f = [0xB8, TGT, 0xF1, p.length, ...p];
     f.push(this.xor(f));
     return Uint8Array.from(f);
@@ -232,9 +253,15 @@ class WebSerialKwp {
     }
 
     let rx = this.rx.slice();
-    // single-wire K-line echoes the request; drop it if present
+    // single-wire lines echo the request; drop it if present
     if (rx.length >= req.length && req.every((b, i) => rx[i] === b)) rx = rx.slice(req.length);
-    const body = (rx.length >= 5 && rx[0] === 0xB8) ? rx.slice(4, rx.length - 1) : rx;
+    let body;
+    if (this.proto === "fast") {
+      // response: [0x80|len] [0xF1] [tgt] body... [sum]
+      body = rx.length >= 4 ? rx.slice(3, rx.length - 1) : rx;
+    } else {
+      body = (rx.length >= 5 && rx[0] === 0xB8) ? rx.slice(4, rx.length - 1) : rx;
+    }
     if (body.length && body[0] === 0x7F) throw new KwpError(body[2] || 0);
     return body;
   }
@@ -320,9 +347,10 @@ function mockLive(lid) {
 
 // ---- Module (ported) ----
 class Module {
-  constructor(t, keys) {
+  constructor(t, keys, target) {
     this.t = t;
     this.keys = keys;
+    this.target = target || "z4";   // "z4" decodes DTCs via DTCMAP; "m3" shows raw codes
   }
 
   async session(l) {
@@ -359,7 +387,9 @@ class Module {
       const o = 2 + i * 3;
       const dtc = (b[o] << 8) | b[o + 1];
       const key = dtc.toString(16).toUpperCase().padStart(4, '0');
-      out.push({ dtc: key, status: b[o + 2], faults: DTCMAP[key] || [] });
+      // DTCMAP is the Z4 GT3 fault table; the M3 has its own, so show raw codes there
+      const faults = this.target === "z4" ? (DTCMAP[key] || []) : [];
+      out.push({ dtc: key, status: b[o + 2], faults });
     }
     return { count: n, dtcs: out };
   }

@@ -22,20 +22,52 @@ if (!("serial" in navigator)) {
     "Web Serial not available in this browser (use Chrome/Edge over https or localhost). Mock mode still works.";
 }
 
+// Per-target transport defaults. Z4 GT3 = K-line KWP; M3 = D-CAN (BMW-FAST).
+const TARGETS = {
+  z4: { label: "Z4 GT3", proto: "kwp",  baud: 9600 },
+  m3: { label: "M3",     proto: "fast", baud: 115200 },
+};
+
+// When the target changes, preset the baud to that target's default.
+if ($("#target")) {
+  $("#target").onchange = e => {
+    const cfg = TARGETS[e.target.value];
+    if (cfg) $("#baud").value = String(cfg.baud);
+    log(`target: ${cfg.label} (${cfg.proto === "kwp" ? "K-line KWP" : "D-CAN"})`);
+  };
+}
+
+// Every action button except Connect is disabled until a connection is made,
+// so clicking one before connecting simply does nothing.
+const actionButtons = Array.from(document.querySelectorAll("button"))
+  .filter(b => !/connect\(\)/.test(b.getAttribute("onclick") || ""));
+function setConnected(on) {
+  actionButtons.forEach(b => { b.disabled = !on; });
+}
+setConnected(false);
+
 async function connect() {
+  const keys = {};
+  if ($("#k9e").value) keys.afb9e = hx($("#k9e").value);
+  if ($("#k10").value) keys.afb10 = hx($("#k10").value);
+  const target = $("#target") ? $("#target").value : "z4";
+  const cfg = TARGETS[target] || TARGETS.z4;
+  const t = $("#mode").value === "serial"
+    ? new WebSerialKwp(parseInt($("#baud").value), cfg.proto)
+    : new MockKwp();
   try {
-    const keys = {};
-    if ($("#k9e").value) keys.afb9e = hx($("#k9e").value);
-    if ($("#k10").value) keys.afb10 = hx($("#k10").value);
-    const t = $("#mode").value === "serial" ? new WebSerialKwp(parseInt($("#baud").value)) : new MockKwp();
     await t.connect();
-    mod = new Module(t, keys);
-    $("#conn").textContent = t.kind;
-    $("#conn").className = "pill on";
-    log(`connected (${t.kind}); keys: ${Object.keys(keys).join(", ") || "none"}`, "ok");
   } catch (e) {
+    // user dismissed the port picker, or no device: do nothing
+    if (e && (e.name === "NotFoundError" || /No port selected/i.test(e.message || ""))) return;
     log("connect: " + e.message, "bad");
+    return;
   }
+  mod = new Module(t, keys, target);
+  setConnected(true);
+  $("#conn").textContent = t.kind === "mock" ? "mock" : `${cfg.label} (${cfg.proto === "kwp" ? "K-line" : "D-CAN"})`;
+  $("#conn").className = "pill on";
+  log(`connected to ${cfg.label} (${t.kind}); keys: ${Object.keys(keys).join(", ") || "none"}`, "ok");
 }
 
 async function session(l) {

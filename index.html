@@ -15,8 +15,10 @@
 </header>
 <main>
   <div class="bar">
-    <select id="mode"><option value="serial">Web Serial (K-line)</option><option value="mock">Mock</option></select>
-    <select id="baud"><option>9600</option><option>10400</option></select>
+    <label>Target</label>
+    <select id="target"><option value="z4">Z4 GT3 (K-line)</option><option value="m3">M3 (D-CAN)</option></select>
+    <select id="mode"><option value="serial">Web Serial</option><option value="mock">Mock</option></select>
+    <select id="baud"><option>9600</option><option>10400</option><option>115200</option></select>
     <label>afb9e</label><input id="k9e" placeholder="0x…" title="level 0x7E constant for your unit (from seedkey.json)" style="width:6em">
     <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
@@ -116,7 +118,7 @@
 
   <section id="sensor"><div class="card">
     <h2>Sensor offset calibration ($31 0x20–0x24)</h2>
-    <p>Stationary required (NRC 0x22 if not ready). Steering zero (0x21) also needs the SZL + CAN key handshake.</p>
+    <p>Stationary required (NRC 0x22 if not ready). On the Z4 GT3, steering zero (0x21) also needs the SZL and the CAN key handshake.</p>
     <div class="row"><button onclick="routine(0x20,'master press')">Master-pressure offset (0x20)</button>
       <button onclick="routine(0x21,'steering zero')">Steering zero (0x21)</button>
       <button onclick="routine(0x22,'lat accel')">Lateral-accel offset (0x22)</button>
