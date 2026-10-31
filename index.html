@@ -113,7 +113,7 @@
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="tire_front" value="205/50/15" style="flex: 1;" oninput="updateCircumference('front')">
                 <span style="white-space: nowrap;">=</span>
-                <input type="number" id="circ_front" placeholder="mm" min="1440" max="2880" style="flex: 1;" readonly>
+                <input type="number" id="circ_front" placeholder="mm" min="1500" max="3000" style="flex: 1;" readonly>
                 <span style="white-space: nowrap;">mm</span>
             </div>
             <div class="hint">Street: 205/50/15, Slick: 27/65-18, or Diameter: 23.1in - circumference auto-calculates, it is best to actually measure or at least use the tire vendor provided diameter</div>
@@ -124,16 +124,16 @@
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="tire_rear" value="245/40/17" style="flex: 1;" oninput="updateCircumference('rear')">
                 <span style="white-space: nowrap;">=</span>
-                <input type="number" id="circ_rear" placeholder="mm" min="1440" max="2880" style="flex: 1;" readonly>
+                <input type="number" id="circ_rear" placeholder="mm" min="1500" max="3000" style="flex: 1;" readonly>
                 <span style="white-space: nowrap;">mm</span>
             </div>
-            <div class="hint">Street: 245/40/17, Slick: 27/65-18, or Diameter: 24.7in - circumference auto-calculates, it is best to actually measure or at least use the tire vendor provided diameter</div>
+            <div class="hint">Street: 245/40/17, Slick: 27/65-18, or Diameter: 24.7in - circumference auto-calculates, it is best to actually measure or at least use the tire vendor provided diameter. The module accepts a new size only when both are 1500-3000 mm and the car is stopped (takes effect at a standstill).</div>
         </div>
 
         <div class="field">
             <label for="abs_mode">ABS Mode Selection (0-9, default 0):</label>
             <input type="number" id="abs_mode" min="0" max="9" value="0" oninput="generateMessage()">
-            <div class="hint">10 positions: 0=max, 9,8,7,6,5,4,3,2,1=min</div>
+            <div class="hint">Firmware is linear: 0 = most permissive / least ABS, Higher = ABS intervenes earlier.</div>
         </div>
 
         <div class="field">
@@ -225,12 +225,12 @@
             }
 
             // Validate range
-            if (circFront < 1440 || circFront > 2880) {
-                document.getElementById('output').innerHTML = `<div style="color: #dc3545;">Front wheel circumference ${circFront}mm is out of range (1440-2880mm)</div>`;
+            if (circFront < 1500 || circFront > 3000) {
+                document.getElementById('output').innerHTML = `<div style="color: #dc3545;">Front wheel circumference ${circFront}mm is out of range; the module only accepts 1500-3000mm</div>`;
                 return;
             }
-            if (circRear < 1440 || circRear > 2880) {
-                document.getElementById('output').innerHTML = `<div style="color: #dc3545;">Rear wheel circumference ${circRear}mm is out of range (1440-2880mm)</div>`;
+            if (circRear < 1500 || circRear > 3000) {
+                document.getElementById('output').innerHTML = `<div style="color: #dc3545;">Rear wheel circumference ${circRear}mm is out of range; the module only accepts 1500-3000mm</div>`;
                 return;
             }
 
