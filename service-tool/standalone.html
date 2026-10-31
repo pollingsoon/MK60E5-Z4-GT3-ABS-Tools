@@ -55,11 +55,11 @@
     <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
     <span style="flex:1"></span>
-    <button onclick="session(0x81)">10 81</button>
-    <button onclick="session(0x87)">10 87</button>
-    <button onclick="unlock(0x7F)">Unlock 0x7F</button>
-    <button onclick="unlock(0x7E)">0x7E</button>
-    <button onclick="unlock(0x03)">0x03</button>
+    <button onclick="session(0x81)">Default session (10 81)</button>
+    <button onclick="session(0x87)">Adjustment session (10 87)</button>
+    <button onclick="unlock(0x7F)">Unlock: coding write (0x7F)</button>
+    <button onclick="unlock(0x7E)">Unlock: CCP (0x7E)</button>
+    <button onclick="unlock(0x03)">Unlock: level 3 (0x03)</button>
   </div>
   <div id="unsupported"></div>
 
@@ -91,24 +91,24 @@
   <section id="valve"><div class="card">
     <h2>Valve calibration ($31 0x28/0x29, $33)</h2>
     <p class="warn">Actuates the valves and pump. Bench only.</p>
-    <div class="row"><button onclick="routine(0x28,'inlet learn')">0x28 inlet</button>
-      <button onclick="routine(0x29,'USV learn')">0x29 USV</button>
-      <button onclick="rstatus(0x28)">status 0x28</button><button onclick="rstatus(0x29)">status 0x29</button></div>
+    <div class="row"><button onclick="routine(0x28,'inlet learn')">Inlet-valve learn (0x28)</button>
+      <button onclick="routine(0x29,'USV learn')">USV learn (0x29)</button>
+      <button onclick="rstatus(0x28)">Inlet status</button><button onclick="rstatus(0x29)">USV status</button></div>
     <div id="valve-out"></div></div></section>
 
   <section id="sensor"><div class="card">
     <h2>Sensor offset calibration ($31 0x20–0x24)</h2>
     <p>Stationary required (NRC 0x22 if not ready). Steering zero (0x21) also needs the SZL + CAN key handshake.</p>
-    <div class="row"><button onclick="routine(0x20,'master press')">0x20</button>
-      <button onclick="routine(0x21,'steering zero')">0x21</button>
-      <button onclick="routine(0x22,'lat accel')">0x22</button>
-      <button onclick="routine(0x24,'long accel')">0x24</button></div>
+    <div class="row"><button onclick="routine(0x20,'master press')">Master-pressure offset (0x20)</button>
+      <button onclick="routine(0x21,'steering zero')">Steering zero (0x21)</button>
+      <button onclick="routine(0x22,'lat accel')">Lateral-accel offset (0x22)</button>
+      <button onclick="routine(0x24,'long accel')">Longitudinal-accel offset (0x24)</button></div>
     <div id="sensor-out"></div></div></section>
 
   <section id="mem">
     <div class="card"><h2>Live data ($21)</h2>
-      <div class="row"><button onclick="live(0x02)">0x02</button><button onclick="live(0x05)">0x05</button>
-        <button onclick="live(0x06)">0x06</button><button onclick="live(0x07)">0x07</button></div>
+      <div class="row"><button onclick="live(0x02)">Conditioned sensors (0x02)</button><button onclick="live(0x05)">Switch status (0x05)</button>
+        <button onclick="live(0x06)">Raw sensors (0x06)</button><button onclick="live(0x07)">Wheel speeds (0x07)</button></div>
       <div id="live-out"></div></div>
     <div class="card"><h2>Memory read ($23, type 3 = EEPROM)</h2>
       <div class="row"><label>addr</label><input id="maddr" value="0x0FA">

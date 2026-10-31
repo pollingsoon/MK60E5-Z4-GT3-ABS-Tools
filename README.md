@@ -4,7 +4,7 @@ Tools and notes to help in the diagnosis and configuration of the MK60E5 out of 
 The part number for these units is 34516769162 with the 829.3 code on the module.  They are compatible with a VW yaw sensor with the part number 7H0907652A, note that this yaw sensor is not pinned the same as the BMW yaw sensor.
 
 ## CANBUS
-These units, when flashed, read tire circumference (front and rear separately), a traction-control threshold and mode, an ABS intervention level, and a gear-shift flag - all from a single CAN message, ID `0x5BA`. A small web page to generate it for your settings is at https://vesrah.github.io/MK60E5-Z4-GT3-ABS-Tools/
+These units, when flashed, read tire circumference (front and rear separately), a traction-control threshold and mode, an ABS intervention level, and a gear-shift flag - all from a single CAN message, ID `0x5BA`. The hosted page at https://vesrah.github.io/MK60E5-Z4-GT3-ABS-Tools/ generates that message for your settings and also includes the diagnostic service tool (see below).
 
 ### ABS intervention level (`0x5BA` byte 7)
 The firmware handles the level linearly. A higher level makes ABS intervene earlier (on a smaller wheel deceleration); **level 0 is the most permissive** (ABS waits the longest). This is *not* the 0-9-8-…-1 order some documentation lists. The level sets the base wheel-deceleration threshold, which sits on top of a base calibration already roughly 0.25–0.45 g more permissive than the road car (1.25g).
@@ -30,7 +30,9 @@ The [`dbc/`](dbc/) folder has DBC files for datalogging and bus work:
 - `z4_gt3_dsc_6769162_fcan.dbc` - the F-CAN sensor-cluster bus: 4 messages carrying yaw rate and lateral/longitudinal acceleration from the yaw sensor.
 
 ## Service tool
-A small browser-based diagnostic tool is in [`service-tool/`](service-tool/): read and clear faults, read and write coding, run the valve- and sensor-calibration routines, and read live data and memory over K-line. `service-tool/standalone.html` runs entirely in Chrome/Edge via the Web Serial API (no backend); a Python-bridge version is included too. See [`service-tool/README.md`](service-tool/README.md). It needs a K+DCAN cable on pin 2, and the `$27` security constants for coding writes are supplied by you, not shipped in the repo.
+The hosted page (root [`index.html`](index.html), styles and scripts under [`assets/`](assets/)) combines the `0x5BA` generator with a browser diagnostic tool: read and clear faults, read and write coding, run the valve- and sensor-calibration routines, and read live data and memory over K-line. It runs entirely in Chrome/Edge via the Web Serial API (no backend); other browsers get the generator and a mock. It needs a K+DCAN cable on pin 2, and the `$27` security constants for coding writes are supplied by you, not shipped in the repo.
+
+A single-file copy and an optional Python-bridge version are in [`service-tool/`](service-tool/) for running locally or scripting; see [`service-tool/README.md`](service-tool/README.md).
 
 ## Wiring
 
