@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Z4 GT3 DSC tool</title>
+<style>
+  :root{--bg:#0e1116;--panel:#171c24;--line:#2a313c;--fg:#e6edf3;--mut:#8b949e;
+        --accent:#4f9cf9;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--radius:8px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px}
+  .pill{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+  .pill.on{color:var(--ok);border-color:var(--ok)}
+  main{max-width:960px;margin:0 auto;padding:16px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius);
+          padding:7px 12px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#06131f;font-weight:600}
+  button.danger{border-color:var(--bad);color:var(--bad)}
+  button.danger:hover{background:var(--bad);color:#140606}
+  input,select{background:#0b0e13;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:13px ui-monospace,monospace}
+  input{width:7.5em}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 12px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent}
+  .tab.active{color:var(--fg);border-bottom-color:var(--accent)}
+  section{display:none}
+  section.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;margin:0 0 4px;font-weight:600}
+  .card p{margin:0 0 10px;color:var(--mut);font-size:12.5px}
+  table{width:100%;border-collapse:collapse;font:12.5px ui-monospace,monospace}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:500}
+  .warn{color:var(--warn)} .bad{color:var(--bad)} .ok{color:var(--ok)}
+  #log{background:#0b0e13;border:1px solid var(--line);border-radius:var(--radius);
+       padding:10px;height:170px;overflow:auto;font:12px ui-monospace,monospace;white-space:pre-wrap;color:var(--mut)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+  label{color:var(--mut);font-size:12.5px}
+  .note{font-size:12px;color:var(--warn);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Z4 GT3 DSC60 - diagnostic tool</h1>
+  <span id="conn" class="pill">not connected</span>
+  <span id="sess" class="pill">session -</span>
+  <span id="sec" class="pill">security -</span>
+</header>
+<main>
+  <div class="bar">
+    <select id="mode"><option value="mock">Mock (no hardware)</option><option value="serial">Serial (K-line)</option></select>
+    <input id="port" placeholder="/dev/cu.usbserial-…" style="width:16em" disabled>
+    <input id="baud" value="9600" style="width:5em" disabled>
+    <button class="primary" onclick="connect()">Connect</button>
+    <span style="flex:1"></span>
+    <button onclick="session(0x81)">Default 10 81</button>
+    <button onclick="session(0x87)">Adjust 10 87</button>
+    <button onclick="unlock(0x7F)">Unlock 0x7F</button>
+    <button onclick="unlock(0x7E)">0x7E</button>
+    <button onclick="unlock(0x03)">0x03</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-t="faults">Faults</div>
+    <div class="tab" data-t="coding">Coding</div>
+    <div class="tab" data-t="valve">Valve cal</div>
+    <div class="tab" data-t="sensor">Sensor cal</div>
+    <div class="tab" data-t="mem">Memory / live</div>
+  </div>
+
+  <section id="faults" class="active">
+    <div class="card">
+      <h2>Fault memory ($18 / $14)</h2>
+      <p>Reads stored DTCs by status and decodes them to internal fault codes via <code>analysis/dtc_map.tsv</code>.</p>
+      <div class="row"><button onclick="readDtcs()">Read faults</button>
+        <button class="danger" onclick="clearDtcs()">Clear faults</button></div>
+      <div id="dtcs"></div>
+    </div>
+  </section>
+
+  <section id="coding">
+    <div class="card">
+      <h2>Vehicle coding ($23 read / $3D write)</h2>
+      <p>2 bytes + checksum at EEPROM 0x0FA–0x0FC. Writing needs <b>Adjust 10 87</b> + <b>Unlock 0x7F</b> and takes effect at the next power-on.</p>
+      <div class="row"><button onclick="readCoding()">Read coding</button></div>
+      <div id="coding-out"></div>
+      <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
+        <label>field1</label><input id="field1" value="0" style="width:4em">
+        <button class="danger" onclick="writeCoding()">Write coding</button></div>
+      <div class="note">Row selects the feature set (0–48). Checksum is computed for you.</div>
+    </div>
+  </section>
+
+  <section id="valve">
+    <div class="card">
+      <h2>Hydraulic valve calibration ($31 0x28 / 0x29, $33 status)</h2>
+      <p class="warn">These routines actuate the valves and pump. Run only on a bench with the unit safe to pulse. Refused if a test is already active or the selector is not accepted.</p>
+      <div class="row">
+        <button onclick="routine(0x28,'inlet-valve learn')">0x28 inlet learn</button>
+        <button onclick="routine(0x29,'USV learn')">0x29 USV learn</button>
+        <button onclick="rstatus(0x28)">status 0x28</button>
+        <button onclick="rstatus(0x29)">status 0x29</button>
+      </div>
+      <div id="valve-out"></div>
+    </div>
+  </section>
+
+  <section id="sensor">
+    <div class="card">
+      <h2>Sensor offset calibration ($31 0x20–0x24)</h2>
+      <p>Car must be <b>stationary</b>; a not-ready routine replies NRC 0x22. Steering zero (0x21) also needs the SZL reporting initialised and the CAN key handshake.</p>
+      <div class="row">
+        <button onclick="routine(0x20,'master-pressure offset')">0x20 master press</button>
+        <button onclick="routine(0x21,'steering zero')">0x21 steering zero</button>
+        <button onclick="routine(0x22,'lateral-accel offset')">0x22 lat accel</button>
+        <button onclick="routine(0x24,'long-accel offset')">0x24 long accel</button>
+      </div>
+      <div id="sensor-out"></div>
+    </div>
+  </section>
+
+  <section id="mem">
+    <div class="card">
+      <h2>Live data ($21)</h2>
+      <p>0x02 conditioned sensors · 0x05 status byte · 0x06 raw ADC/sensors · 0x07 raw wheel speeds.</p>
+      <div class="row">
+        <button onclick="live(0x02)">0x02</button><button onclick="live(0x05)">0x05</button>
+        <button onclick="live(0x06)">0x06</button><button onclick="live(0x07)">0x07</button>
+      </div>
+      <div id="live-out"></div>
+    </div>
+    <div class="card">
+      <h2>Memory read ($23)</h2>
+      <p>Type 3 = EEPROM by address. Useful: 0x0FA coding, 0x160 steering/accel offset record, 0x0F0 steering key.</p>
+      <div class="row"><label>addr</label><input id="maddr" value="0x0FA">
+        <label>len</label><input id="mlen" value="3" style="width:4em">
+        <label>type</label><input id="mtype" value="3" style="width:3.5em">
+        <button onclick="readMem()">Read</button></div>
+      <div id="mem-out"></div>
+    </div>
+  </section>
+
+  <div class="card"><h2>Transaction log</h2><div id="log"></div></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+
+function log(line, cls) {
+  const d = $("#log"), t = new Date().toLocaleTimeString();
+  d.innerHTML += `<div class="${cls || ''}">[${t}] ${line}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+
+async function api(action, body) {
+  const r = await fetch("/api/" + action, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const j = await r.json();
+  if (j.error) {
+    log(`${action}: ${j.error}`, "bad");
+    throw new Error(j.error);
+  }
+  return j;
+}
+
+function fmt(hex) {
+  return (hex.match(/../g) || []).join(" ");
+}
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll("section").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  $("#" + t.dataset.t).classList.add("active");
+});
+
+$("#mode").onchange = e => {
+  const serial = e.target.value === "serial";
+  $("#port").disabled = !serial;
+  $("#baud").disabled = !serial;
+};
+
+async function connect() {
+  const mock = $("#mode").value === "mock";
+  const j = await api("connect", { mock, port: $("#port").value, baud: $("#baud").value });
+  $("#conn").textContent = j.kind === "mock" ? "mock" : "serial";
+  $("#conn").className = "pill on";
+  log(`connected (${j.kind}); seedkey constants: ${j.keys.join(", ") || "none"}`, "ok");
+}
+
+async function session(l) {
+  const j = await api("session", { level: l });
+  $("#sess").textContent = "session " + j.session;
+  $("#sess").className = "pill on";
+  log("session " + j.session, "ok");
+}
+
+async function unlock(l) {
+  try {
+    const j = await api("unlock", { level: l });
+    $("#sec").textContent = "security " + (j.level || l);
+    $("#sec").className = "pill on";
+    log(`unlock ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''}`, "ok");
+  } catch (e) { /* logged by api() */ }
+}
+
+async function readDtcs() {
+  const j = await api("read_dtcs");
+  let h = `<table><tr><th>DTC</th><th>status</th><th>flags</th><th>internal fault(s)</th></tr>`;
+  j.dtcs.forEach(d => {
+    h += `<tr><td>${d.dtc}</td><td>${d.status}</td><td>${d.status_bits.join(" ")}</td><td>${d.faults.join(" ")}</td></tr>`;
+  });
+  h += `</table>`;
+  if (!j.count) h = `<p class="ok">no stored faults</p>`;
+  $("#dtcs").innerHTML = h;
+  log(`read ${j.count} DTC(s)`);
+}
+
+async function clearDtcs() {
+  if (!confirm("Clear all stored fault memory?")) return;
+  await api("clear_dtcs");
+  log("faults cleared", "ok");
+  readDtcs();
+}
+
+async function readCoding() {
+  const j = await api("read_coding");
+  $("#coding-out").innerHTML =
+    `<table><tr><th>checksum</th><th>row</th><th>field1</th><th>checksum</th></tr>` +
+    `<tr><td>${j.checksum}</td><td>${j.row}</td><td>${j.field1}</td>` +
+    `<td class="${j.checksum_ok ? 'ok' : 'bad'}">${j.checksum_ok ? 'valid' : 'BAD'}</td></tr></table>`;
+  $("#row").value = j.row;
+  $("#field1").value = j.field1;
+  log(`coding row ${j.row} field1 ${j.field1}`);
+}
+
+async function writeCoding() {
+  const row = +$("#row").value, f1 = +$("#field1").value;
+  if (!confirm(`Write coding row=${row} field1=${f1}? Needs 10 87 + 0x7F. Effective next power-on.`)) return;
+  try {
+    const j = await api("write_coding", { row, field1: f1 });
+    log("coding written: " + j.written.map(w => w.addr + "=" + w.value).join(" "), "ok");
+  } catch (e) { /* logged by api() */ }
+}
+
+async function routine(rid, name) {
+  try {
+    await api("run_routine", { rid });
+    log(`routine 0x${rid.toString(16)} (${name}) started`, "ok");
+    rstatus(rid);
+  } catch (e) { /* logged by api() */ }
+}
+
+async function rstatus(rid) {
+  try {
+    const j = await api("routine_status", { rid });
+    const el = $("#" + ($("#valve").classList.contains("active") ? "valve" : "sensor") + "-out");
+    const state = j.done ? 'done' : j.running ? 'running' : 'idle';
+    el.innerHTML = `routine ${j.routine}: <span class="${j.done ? 'ok' : 'warn'}">${j.status} ${state}</span>`;
+    log(`routine ${j.routine} status ${j.status}`);
+  } catch (e) { /* logged by api() */ }
+}
+
+async function live(lid) {
+  try {
+    const j = await api("read_live", { lid });
+    $("#live-out").innerHTML =
+      `<table><tr><th>$21 id</th><th>bytes</th></tr><tr><td>${j.lid}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+    log(`$21 ${j.lid}: ${j.len} bytes`);
+  } catch (e) { /* logged by api() */ }
+}
+
+async function readMem() {
+  try {
+    const j = await api("read_memory", {
+      addr: $("#maddr").value,
+      length: +$("#mlen").value,
+      mtype: +$("#mtype").value,
+    });
+    $("#mem-out").innerHTML =
+      `<table><tr><th>len</th><th>bytes</th></tr><tr><td>${j.len}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+    log(`$23 read ${j.len} bytes`);
+  } catch (e) { /* logged by api() */ }
+}
+
+connect();
+</script>
+</body>
+</html>
