@@ -40,7 +40,7 @@ BO_ 306 Cluster_Status: 8 SensorCluster
 BO_ 307 Cluster_Seen: 2 SensorCluster
  SG_ Value : 0|16@1+ (1,0) [0|65535] "" DSC
 
-CM_ "Z4 GT3 ABS/DSC module (Continental MK60E5 / DSC60, software ZB 6769162). Derived from analysis of the module software. Node DSC = this module. Only fields the software computes or uses are included; received fields it ignores and transmitted fields with a fixed value are left out. Scaling is given where it is established; other fields are raw. Byte/bit numbering 0-based, little-endian (Intel). Fault references are the DTC numbers the module reports over KWP $18. Bus: second CAN (F-CAN) to the yaw/acceleration sensor cluster.";
+CM_ "Z4 GT3 ABS/DSC module (Continental MK60E5 / DSC60, software ZB 6769162). Node DSC = this module. Only fields the software computes or uses are included; received fields it ignores and transmitted fields with a fixed value are left out. Scaling is given where it is established; other fields are raw. Byte/bit numbering 0-based, little-endian (Intel). Fault references are the DTC numbers the module reports over KWP $18. Bus: second CAN (F-CAN) to the yaw/acceleration sensor cluster.";
 CM_ BO_ 307 "Sensor cluster, 10 ms: one 16-bit value; reception marks the cluster as present. Received by this module, every 10 ms.";
 CM_ BO_ 306 "Sensor cluster status, 10 ms: status nibbles, four status bytes and the ready/self-test flags the firmware uses to hold or release the cluster signals. Received by this module, every 10 ms.";
 CM_ BO_ 305 "Sensor cluster, channel set B, 10 ms: two supervision words and the longitudinal acceleration, with status, counter and CRC-8. Received by this module, every 10 ms.";

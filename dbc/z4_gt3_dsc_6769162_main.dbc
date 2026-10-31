@@ -137,7 +137,7 @@ BO_ 1500 Diag_5DC: 8 Vector__XXX
 BO_ 1698 CCP_CRO: 8 Vector__XXX
  SG_ CRO_Data : 0|64@1+ (1,0) [0|1.844674407e+19] "" DSC
 
-CM_ "Z4 GT3 ABS/DSC module (Continental MK60E5 / DSC60, software ZB 6769162). Derived from analysis of the module software. Node DSC = this module. Only fields the software computes or uses are included; received fields it ignores and transmitted fields with a fixed value are left out. Scaling is given where it is established; other fields are raw. Byte/bit numbering 0-based, little-endian (Intel). Fault references are the DTC numbers the module reports over KWP $18. Bus: main (vehicle) CAN.";
+CM_ "Z4 GT3 ABS/DSC module (Continental MK60E5 / DSC60, software ZB 6769162). Node DSC = this module. Only fields the software computes or uses are included; received fields it ignores and transmitted fields with a fixed value are left out. Scaling is given where it is established; other fields are raw. Byte/bit numbering 0-based, little-endian (Intel). Fault references are the DTC numbers the module reports over KWP $18. Bus: main (vehicle) CAN.";
 CM_ BO_ 1698 "CCP command receive object (CRO). Commands are handled only in diagnostic state 4 (entered with KWP $31 $31). Received by this module, event-driven.";
 CM_ BO_ 1500 "Not in the Continental document. One bit reports DTC 0x5E58; any reception reloads a watchdog. Avoid sending it. Received by this module, event-driven. Receive-timeout reference 50 (age-counter units).";
 CM_ BO_ 1490 "Identification/key handshake: a 32-bit key is compared with the stored key (stored when it differs). Completed by 0x7C2.";
