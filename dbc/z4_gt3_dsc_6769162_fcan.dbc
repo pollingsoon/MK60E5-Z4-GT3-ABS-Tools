@@ -1,0 +1,81 @@
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: DSC SensorCluster
+
+BO_ 304 Cluster_A: 8 SensorCluster
+ SG_ YawRate : 0|16@1- (0.034919,0) [-1144.225792|1144.190873] "deg/s" DSC
+ SG_ LateralAccel_Raw : 16|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ Word4 : 32|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ Status_A : 48|2@1+ (1,0) [0|3] "" DSC
+ SG_ Status_B : 50|2@1+ (1,0) [0|3] "" DSC
+ SG_ AliveCounter : 52|4@1+ (1,0) [0|15] "" DSC
+ SG_ Checksum : 56|8@1+ (1,0) [0|255] "" DSC
+
+BO_ 305 Cluster_B: 8 SensorCluster
+ SG_ Word1 : 0|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ Word3 : 16|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ LongitudinalAccel_Raw : 32|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ Status_A : 48|2@1+ (1,0) [0|3] "" DSC
+ SG_ Status_B : 50|2@1+ (1,0) [0|3] "" DSC
+ SG_ AliveCounter : 52|4@1+ (1,0) [0|15] "" DSC
+ SG_ Checksum : 56|8@1+ (1,0) [0|255] "" DSC
+
+BO_ 306 Cluster_Status: 8 SensorCluster
+ SG_ Nibble0_lo : 0|4@1+ (1,0) [0|15] "" DSC
+ SG_ Nibble0_hi : 4|4@1+ (1,0) [0|15] "" DSC
+ SG_ Nibble1_lo : 8|4@1+ (1,0) [0|15] "" DSC
+ SG_ Nibble1_hi : 12|4@1+ (1,0) [0|15] "" DSC
+ SG_ Byte2 : 16|8@1+ (1,0) [0|255] "" DSC
+ SG_ Byte3 : 24|8@1+ (1,0) [0|255] "" DSC
+ SG_ Byte4 : 32|8@1+ (1,0) [0|255] "" DSC
+ SG_ Byte5 : 40|8@1+ (1,0) [0|255] "" DSC
+ SG_ ReadyFlags : 48|4@1+ (1,0) [0|15] "" DSC
+ SG_ AliveCounter : 52|4@1+ (1,0) [0|15] "" DSC
+ SG_ Checksum : 56|8@1+ (1,0) [0|255] "" DSC
+
+BO_ 307 Cluster_Seen: 2 SensorCluster
+ SG_ Value : 0|16@1+ (1,0) [0|65535] "" DSC
+
+CM_ "Z4 GT3 ABS/DSC module (Continental MK60E5 / DSC60, software ZB 6769162). Derived from analysis of the module software. Node DSC = this module. Only fields the software computes or uses are included; received fields it ignores and transmitted fields with a fixed value are left out. Scaling is given where it is established; other fields are raw. Byte/bit numbering 0-based, little-endian (Intel). Fault references are the DTC numbers the module reports over KWP $18. Bus: second CAN (F-CAN) to the yaw/acceleration sensor cluster.";
+CM_ BO_ 307 "Sensor cluster, 10 ms: one 16-bit value; reception marks the cluster as present. Received by this module, every 10 ms.";
+CM_ BO_ 306 "Sensor cluster status, 10 ms: status nibbles, four status bytes and the ready/self-test flags the firmware uses to hold or release the cluster signals. Received by this module, every 10 ms.";
+CM_ BO_ 305 "Sensor cluster, channel set B, 10 ms: two supervision words and the longitudinal acceleration, with status, counter and CRC-8. Received by this module, every 10 ms.";
+CM_ BO_ 304 "Yaw/acceleration sensor cluster, channel set A, 10 ms: yaw rate, lateral acceleration and a supervision word, with status, alive counter and CRC-8. The source of yaw and ay. A frozen counter or bad CRC rejects the frame. Received by this module, every 10 ms.";
+CM_ SG_ 304 YawRate "Yaw rate from the sensor cluster (word 0). Scale derived from the module's own yaw output on 0x4A8. Sign convention opposite to the BMW M3 cluster.";
+CM_ SG_ 304 LateralAccel_Raw "Lateral acceleration from the sensor cluster (word 2), raw.";
+CM_ SG_ 304 Word4 "Cluster word 4, supervision only.";
+CM_ SG_ 304 Status_A "2-bit status field.";
+CM_ SG_ 304 Status_B "2-bit status field.";
+CM_ SG_ 304 AliveCounter "Frozen counter -> message rejected.";
+CM_ SG_ 304 Checksum "CRC-8 of bytes 0-6 (poly 0x1D, start 0xFF, inverted); mismatch -> message rejected.";
+CM_ SG_ 305 Word1 "Cluster word 1, supervision only.";
+CM_ SG_ 305 Word3 "Cluster word 3, supervision only.";
+CM_ SG_ 305 LongitudinalAccel_Raw "Longitudinal acceleration from the sensor cluster (word 5), raw.";
+CM_ SG_ 305 Status_A "2-bit status field.";
+CM_ SG_ 305 Status_B "2-bit status field.";
+CM_ SG_ 305 AliveCounter "Own counter.";
+CM_ SG_ 305 Checksum "CRC-8 as 0x130.";
+CM_ SG_ 306 Nibble0_lo "Cluster status nibble.";
+CM_ SG_ 306 Nibble0_hi "Cluster status nibble.";
+CM_ SG_ 306 Nibble1_lo "Cluster status nibble.";
+CM_ SG_ 306 Nibble1_hi "Cluster status nibble.";
+CM_ SG_ 306 Byte2 "Cluster status byte (stored; read by the cluster supervision).";
+CM_ SG_ 306 Byte3 "Cluster status byte (stored).";
+CM_ SG_ 306 Byte4 "Cluster status byte (stored).";
+CM_ SG_ 306 Byte5 "Cluster status byte (stored).";
+CM_ SG_ 306 ReadyFlags "Cluster ready / self-test flags; the module holds the cluster signals until they report ready.";
+CM_ SG_ 306 AliveCounter "Alive counter; frozen -> frame rejected.";
+CM_ SG_ 306 Checksum "CRC-8 as 0x130.";
+CM_ SG_ 307 Value "16-bit value; marks the cluster as seen.";
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+BA_ "GenMsgCycleTime" BO_ 304 10;
+BA_ "GenMsgCycleTime" BO_ 305 10;
+BA_ "GenMsgCycleTime" BO_ 306 10;
+BA_ "GenMsgCycleTime" BO_ 307 10;
+
