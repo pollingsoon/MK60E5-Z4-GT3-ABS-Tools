@@ -146,10 +146,18 @@ async function readIdent(id, quiet) {
       log(`part number ZB ${j.zb}`, "ok");
     } else if (j.swId !== undefined) {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
-           `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
+           `<div class="note" style="color:var(--mut)">tail (version/date block; the firmware's key routines read the $27 constants from it): ${fmt(j.tail)}</div>`;
       $("#swid").textContent = "SW " + j.swId;
       $("#swid").className = "pill on";
       log(`software id ${j.swId}`, "ok");
+      if (j.keys) {
+        const hx4 = v => "0x" + v.toString(16).toUpperCase().padStart(4, "0");
+        let filled = [];
+        if (!$("#k9e").value.trim()) { $("#k9e").value = hx4(j.keys.afb9e); filled.push("afb9e"); }
+        if (!$("#k10").value.trim()) { $("#k10").value = hx4(j.keys.afb10); filled.push("afb10"); }
+        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)}${filled.length ? " (filled " + filled.join(" + ") + ")" : ""}</div>`;
+        if (filled.length) log(`key constants from ident: afb9e ${hx4(j.keys.afb9e)} afb10 ${hx4(j.keys.afb10)}`, "ok");
+      }
     } else {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td>${j.ascii}</td><td>${fmt(j.bytes)}</td></tr></table>`;
       log(`$1A ${hid}: ${j.bytes.length} bytes`);

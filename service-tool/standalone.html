@@ -57,7 +57,8 @@
     <label>afb9e</label><input id="k9e" placeholder="0x…" title="level 0x7E constant for your unit (from seedkey.json)" style="width:6em">
     <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
-    <span style="flex:1"></span>
+  </div>
+  <div class="bar">
     <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
     <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
   </div>
@@ -778,6 +779,12 @@ class Module {
         d.slice(1, 1 + n).every(c => c >= 0x20 && c < 0x7F)) {
       out.swId = String.fromCharCode(...d.slice(1, 1 + n)).trim();
       out.tail = d.slice(1 + n);
+      if (d.length > 0x15) {
+        out.keys = {
+          afb9e: (d[0x11] << 8) | d[0x13],
+          afb10: (d[0x14] << 8) | d[0x15],
+        };
+      }
     } else {
       out.ascii = d.map(c => (c >= 0x20 && c < 0x7F) ? String.fromCharCode(c) : ".").join("");
     }
@@ -979,10 +986,18 @@ async function readIdent(id, quiet) {
       log(`part number ZB ${j.zb}`, "ok");
     } else if (j.swId !== undefined) {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
-           `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
+           `<div class="note" style="color:var(--mut)">tail (version/date block; the firmware's key routines read the $27 constants from it): ${fmt(j.tail)}</div>`;
       $("#swid").textContent = "SW " + j.swId;
       $("#swid").className = "pill on";
       log(`software id ${j.swId}`, "ok");
+      if (j.keys) {
+        const hx4 = v => "0x" + v.toString(16).toUpperCase().padStart(4, "0");
+        let filled = [];
+        if (!$("#k9e").value.trim()) { $("#k9e").value = hx4(j.keys.afb9e); filled.push("afb9e"); }
+        if (!$("#k10").value.trim()) { $("#k10").value = hx4(j.keys.afb10); filled.push("afb10"); }
+        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)}${filled.length ? " (filled " + filled.join(" + ") + ")" : ""}</div>`;
+        if (filled.length) log(`key constants from ident: afb9e ${hx4(j.keys.afb9e)} afb10 ${hx4(j.keys.afb10)}`, "ok");
+      }
     } else {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td>${j.ascii}</td><td>${fmt(j.bytes)}</td></tr></table>`;
       log(`$1A ${hid}: ${j.bytes.length} bytes`);

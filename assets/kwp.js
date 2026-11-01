@@ -676,6 +676,12 @@ class Module {
         d.slice(1, 1 + n).every(c => c >= 0x20 && c < 0x7F)) {
       out.swId = String.fromCharCode(...d.slice(1, 1 + n)).trim();
       out.tail = d.slice(1 + n);
+      if (d.length > 0x15) {
+        out.keys = {
+          afb9e: (d[0x11] << 8) | d[0x13],
+          afb10: (d[0x14] << 8) | d[0x15],
+        };
+      }
     } else {
       out.ascii = d.map(c => (c >= 0x20 && c < 0x7F) ? String.fromCharCode(c) : ".").join("");
     }

@@ -375,6 +375,9 @@ class Module:
         if iid == 0x94 and 0 < n < len(data) and all(0x20 <= b < 0x7F for b in s):
             out["sw_id"] = s.decode("ascii").strip()
             out["tail"] = data[1 + n:].hex()
+            if len(data) > 0x15:
+                out["keys"] = {"afb9e": (data[0x11] << 8) | data[0x13],
+                               "afb10": (data[0x14] << 8) | data[0x15]}
         else:
             out["ascii"] = "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in data)
         return out
