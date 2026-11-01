@@ -32,6 +32,8 @@ The [`dbc/`](dbc/) folder has DBC files for datalogging and bus work:
 ## Service tool
 The hosted page (root [`index.html`](index.html), styles and scripts under [`assets/`](assets/)) combines the `0x5BA` generator with a browser diagnostic tool: read and clear faults, read and write coding, run the valve- and sensor-calibration routines, and read live data and memory over K-line. It runs entirely in Chrome/Edge via the Web Serial API (no backend); other browsers get the generator and a mock. It needs a K+DCAN cable on pin 2, and the `$27` security constants for coding writes are supplied by you, not shipped in the repo.
 
+On connect the tool reads the module's software identification (`$1A 94`, a string fixed in the flash image) and shows it in the header. The fault readout decodes each DTC to its internal fault code(s), says what each one means, and whether it switches ABS off and lights the ABS warning lamp (pin 44); see [`service-tool/README.md`](service-tool/README.md#faults-and-the-abs-lamp) for the rule and its limits.
+
 A **Target** selector switches between the Z4 GT3 (K-line KWP) and the road-car M3 (D-CAN / BMW-FAST). On the M3 it reads fault codes and runs the same sensor-zeroing routines; codes are shown raw (the M3 has its own fault table, not the Z4 decode). The M3 D-CAN framing follows the documented BMW-FAST protocol and is to be confirmed on the bench. Supply the matching unit's `$27` constants either way.
 
 A single-file copy and an optional Python-bridge version are in [`service-tool/`](service-tool/) for running locally or scripting; see [`service-tool/README.md`](service-tool/README.md). (The Target selector is in the hosted page; the single-file and Python copies are Z4-only for now.)

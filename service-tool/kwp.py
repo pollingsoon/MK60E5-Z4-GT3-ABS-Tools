@@ -37,6 +37,16 @@ NRC = {0x10: "generalReject", 0x11: "serviceNotSupported", 0x12: "subFuncNotSupp
        0x13: "wrongLength", 0x22: "conditionsNotCorrect", 0x31: "requestOutOfRange",
        0x33: "securityAccessDenied", 0x35: "invalidKey", 0x78: "responsePending"}
 
+# $1A identification blocks (Z4 GT3 firmware): id -> (length, where it lives)
+IDENT_BLOCKS = {0x80: (29, "EEPROM block 10 +0x1A"), 0x8F: (30, "EEPROM block 0 +0"),
+                0x90: (7, "EEPROM block 10 +0x37"), 0x94: (30, "flash 0x76d4 (fixed)"),
+                0x99: (4, "EEPROM block 10 +0x16")}
+
+# The fixed 30-byte software-identification block the Z4 GT3 firmware copies verbatim
+# for `$1A 94` (kwp_1a_read_ecu_id 0x27fac, source pointer 0x28dc0 -> flash 0x76d4):
+# length byte, the 12-character software ID string, then a `90 00 0E` tag + 14-byte binary tail.
+SW_IDENT_0x94 = bytes.fromhex("0c414e5f42424630303033382090000e001d07140a1d0003000000820101")
+
 
 # ---- key algorithms (self-contained copies of the kline_ident versions) ----
 def _ror16(v, n):
@@ -170,6 +180,13 @@ class MockKwp:
             # key submit: mock always grants
             self.sec_level = {0x04: 0x03, 0xFC: 0x7E, 0xFE: 0x7F}.get(sub, self.sec_level)
             return bytes([0x67, sub])
+        if s == 0x1A:  # read ECU identification
+            iid = p[1] if len(p) > 1 else 0
+            if iid == 0x94:
+                return bytes([0x5A, 0x94]) + SW_IDENT_0x94
+            if iid in IDENT_BLOCKS:  # EEPROM-backed blocks: content not on file, zero-filled
+                return bytes([0x5A, iid]) + bytes(IDENT_BLOCKS[iid][0])
+            raise KwpError(0x12, NRC[0x12])
         if s == 0x18:  # read DTC by status
             out = bytearray([0x58, len(self.dtcs)])
             for hi, lo, st in self.dtcs:
@@ -257,6 +274,32 @@ def load_dtc_names():
     return m
 
 
+def load_fault_info():
+    """fault code -> {d, lamp, eff} from the bundled faultinfo.json (see README), or {}."""
+    path = os.path.join(HERE, "faultinfo.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        raw = json.load(open(path))
+    except (ValueError, json.JSONDecodeError):
+        return {}
+    return {int(k, 16): v for k, v in raw.items()}
+
+
+def dtc_lamp(infos):
+    """Per-DTC ABS-lamp verdict from its candidate faults: yes / no / depends / ?."""
+    v = [i.get("lamp", "?") for i in infos]
+    if not v:
+        return "?"
+    if all(x == "yes" for x in v):
+        return "yes"
+    if all(x == "no" for x in v):
+        return "no"
+    if "yes" in v:
+        return "depends"
+    return "no" if "no" in v else "?"
+
+
 def decode_status(b):
     """A compact decode of the $18 status byte (see docs/dtc.md)."""
     bits = []
@@ -278,6 +321,7 @@ class Module:
         self.zb = zb
         self.keys = load_seedkey(zb)
         self.dtc_names = load_dtc_names()
+        self.fault_info = load_fault_info()
 
     # session / security
     def enter_session(self, level):
@@ -311,6 +355,22 @@ class Module:
         self.t.request([0x27, key_sub, (key >> 8) & 0xFF, key & 0xFF])
         return {"level": f"0x{level:02X}", "seed": f"0x{seed:04X}", "key": f"0x{key:04X}"}
 
+    # identification
+    def read_ident(self, iid=0x94):
+        """$1A <id>. For 0x94 decode the software-identification string."""
+        body = self.t.request([0x1A, iid])
+        data = body[2:] if len(body) >= 2 and body[0] == 0x5A else body
+        out = {"id": f"0x{iid:02X}", "bytes": data.hex(), "len": len(data),
+               "source": IDENT_BLOCKS.get(iid, (0, "?"))[1]}
+        n = data[0] if data else 0
+        s = data[1:1 + n]
+        if iid == 0x94 and 0 < n < len(data) and all(0x20 <= b < 0x7F for b in s):
+            out["sw_id"] = s.decode("ascii").strip()
+            out["tail"] = data[1 + n:].hex()
+        else:
+            out["ascii"] = "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in data)
+        return out
+
     # faults
     def read_dtcs(self):
         body = self.t.request([0x18, 0x02, 0xFF, 0xFF])
@@ -323,11 +383,14 @@ class Module:
             hi, lo, st = body[off], body[off + 1], body[off + 2]
             dtc = (hi << 8) | lo
             faults = self.dtc_names.get(dtc, [])
+            infos = [self.fault_info.get(f, {"d": "(no entry)", "lamp": "?", "eff": ""}) for f in faults]
             out.append({
                 "dtc": f"0x{dtc:04X}",
                 "status": f"0x{st:02X}",
                 "status_bits": decode_status(st),
                 "faults": [f"0x{f:05X}" for f in faults],
+                "info": infos,
+                "lamp": dtc_lamp(infos),
             })
         return {"count": count, "dtcs": out}
 

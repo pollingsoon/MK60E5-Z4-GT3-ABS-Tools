@@ -68,6 +68,7 @@ async function connect() {
   $("#conn").textContent = t.kind === "mock" ? "mock" : `${cfg.label} (${cfg.proto === "kwp" ? "K-line" : "D-CAN"})`;
   $("#conn").className = "pill on";
   log(`connected to ${cfg.label} (${t.kind}); keys: ${Object.keys(keys).join(", ") || "none"}`, "ok");
+  readIdent(0x94, true);
 }
 
 async function session(l) {
@@ -92,19 +93,50 @@ async function unlock(l) {
   }
 }
 
+const LAMP_TXT = { yes: ["ABS lamp ON", "bad"], no: ["no ABS lamp", "ok"], depends: ["depends on fault", "warn"], "?": ["not traced", "mut"] };
+
 async function readDtcs() {
   try {
     const j = await mod.readDtcs();
-    let h = `<table><tr><th>DTC</th><th>status</th><th>internal fault(s)</th></tr>`;
+    let h = `<table><tr><th>DTC</th><th>status</th><th>ABS lamp</th><th>internal fault(s) and meaning</th></tr>`;
     j.dtcs.forEach(d => {
-      h += `<tr><td>0x${d.dtc}</td><td>0x${d.status.toString(16)}</td><td>${d.faults.map(f => '0x' + f).join(' ')}</td></tr>`;
+      const [lt, lc] = LAMP_TXT[d.lamp] || LAMP_TXT["?"];
+      const st = (d.status & 0x40) ? "present" : "stored";
+      const rows = d.faults.length
+        ? d.faults.map((f, i) => {
+            const inf = d.info[i] || [];
+            return `<div><b>0x${f}</b> ${inf[0] || ''}${inf[2] ? ` <span class="mut">- ${inf[2]}</span>` : ''}</div>`;
+          }).join('')
+        : '<span class="mut">no decode table for this target</span>';
+      h += `<tr><td>0x${d.dtc}</td><td>0x${d.status.toString(16)} ${st}</td><td class="${lc}">${lt}</td><td>${rows}</td></tr>`;
     });
-    h += `</table>`;
+    h += `</table><div class="note" style="color:var(--mut)">status 0x40 = fault currently present; "depends" = the DTC is shared by several internal faults and only some of them switch ABS off (read fault_flags at RAM 0x101f04 to tell them apart).</div>`;
     if (!j.count) h = `<p class="ok">no stored faults</p>`;
     $("#dtcs").innerHTML = h;
     log(`read ${j.count} DTC(s)`);
   } catch (e) {
     log("read_dtcs: " + e.message, "bad");
+  }
+}
+
+async function readIdent(id, quiet) {
+  try {
+    const j = await mod.readIdent(id);
+    const hid = "0x" + id.toString(16).toUpperCase();
+    let h = `<table><tr><th>$1A id</th><th>source</th><th>decoded</th><th>bytes</th></tr>`;
+    if (j.swId !== undefined) {
+      h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
+           `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
+      $("#swid").textContent = "sw " + j.swId;
+      $("#swid").className = "pill on";
+      log(`software id ${j.swId}`, "ok");
+    } else {
+      h += `<tr><td>${hid}</td><td>${j.source}</td><td>${j.ascii}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+      log(`$1A ${hid}: ${j.bytes.length} bytes`);
+    }
+    $("#ident-out").innerHTML = h;
+  } catch (e) {
+    log("read_ident: " + e.message, quiet ? "" : "bad");
   }
 }
 

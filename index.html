@@ -12,6 +12,7 @@
   <span id="conn" class="pill">not connected</span>
   <span id="sess" class="pill">session -</span>
   <span id="sec" class="pill">security -</span>
+  <span id="swid" class="pill" title="software identification ($1A 94)">sw -</span>
 </header>
 <main>
   <div class="bar">
@@ -92,8 +93,15 @@
   </section>
 
   <section id="faults"><div class="card">
+    <h2>Identification ($1A)</h2>
+    <p>0x94 is the software-identification string fixed in flash; 0x80 / 0x8F / 0x90 / 0x99 are the EEPROM ident records. Read automatically on connect.</p>
+    <div class="row"><button onclick="readIdent(0x94)">Software ID (1A 94)</button>
+      <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
+      <button onclick="readIdent(0x90)">0x90</button><button onclick="readIdent(0x99)">0x99</button></div>
+    <div id="ident-out"></div></div>
+  <div class="card">
     <h2>Fault memory ($18 / $14)</h2>
-    <p>Reads DTCs by status and decodes to internal fault codes (embedded map).</p>
+    <p>Reads DTCs by status and decodes each to its internal fault code(s), what they mean, and whether the fault switches ABS off and lights the ABS warning lamp (pin 44). Faults that only disable brake TCS / ASR or mark the yaw/steering sensors untrusted do not light the ABS lamp.</p>
     <div class="row"><button onclick="readDtcs()">Read faults</button>
       <button class="danger" onclick="clearDtcs()">Clear faults</button></div>
     <div id="dtcs"></div></div></section>

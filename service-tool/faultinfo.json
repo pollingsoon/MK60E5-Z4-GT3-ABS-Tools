@@ -1,0 +1,1472 @@
+{
+"10001":{
+"dtc":"0x5DF5",
+"d":"ECU internal / hardware (bit 0)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10002":{
+"dtc":"0x5DF2",
+"d":"ECU internal / hardware (bit 1)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10004":{
+"dtc":"0x5DF2",
+"d":"valve-driver chip start-up failure, all valves off",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10008":{
+"dtc":"0x5DF2",
+"d":"ECU internal / hardware (bit 3)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10010":{
+"dtc":"0x5DF2",
+"d":"ECU internal / hardware (bit 4)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10020":{
+"dtc":"0x5DF2",
+"d":"ECU internal / hardware (bit 5)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10080":{
+"dtc":"0x5DF5",
+"d":"ECU internal fault (direct lamp request, blink code)",
+"lamp":"yes",
+"eff":"ABS lamp (direct request)"
+},
+"10100":{
+"dtc":"0x5DF2",
+"d":"ECU internal / hardware (bit 8)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10200":{
+"dtc":"0x5DF5",
+"d":"ECU internal / hardware (bit 9)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10400":{
+"dtc":"0x5DF5",
+"d":"ECU internal / hardware (bit 10)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"10800":{
+"dtc":"0x5DF5",
+"d":"ECU internal / hardware (bit 11)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"11000":{
+"dtc":"0x5DF5",
+"d":"ECU internal / hardware (bit 12)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"14000":{
+"dtc":"0x5DF5",
+"d":"NVM / EEPROM access failure",
+"lamp":"?",
+"eff":"not traced"
+},
+"20001":{
+"dtc":"0x5D90",
+"d":"wheel-speed sensor FL: sensor status report from the wheel-sensor ASIC (open / short / supply)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20002":{
+"dtc":"0x5D91",
+"d":"wheel-speed sensor FL: glitch recovery lasting too long above 20 km/h",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20004":{
+"dtc":"0x5D95",
+"d":"wheel-speed sensor FL: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20008":{
+"dtc":"0x5D93",
+"d":"wheel-speed sensor FL: wheel below the slow-wheel / standstill limit (wheel stuck or sensor dead)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20010":{
+"dtc":"0x5D94",
+"d":"wheel-speed sensor FL: ABS phase on this wheel for more than 2800 frames (28 s)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20020":{
+"dtc":"0x5D92",
+"d":"wheel-speed sensor FL: missing tooth / irregular tooth period",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"20040":{
+"dtc":"0x5D96",
+"d":"wheel-speed sensor FL: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30001":{
+"dtc":"0x5DA0",
+"d":"wheel-speed sensor FR: sensor status report from the wheel-sensor ASIC (open / short / supply)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30002":{
+"dtc":"0x5DA1",
+"d":"wheel-speed sensor FR: glitch recovery lasting too long above 20 km/h",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30004":{
+"dtc":"0x5DA5",
+"d":"wheel-speed sensor FR: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30008":{
+"dtc":"0x5DA3",
+"d":"wheel-speed sensor FR: wheel below the slow-wheel / standstill limit (wheel stuck or sensor dead)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30010":{
+"dtc":"0x5DA4",
+"d":"wheel-speed sensor FR: ABS phase on this wheel for more than 2800 frames (28 s)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30020":{
+"dtc":"0x5DA2",
+"d":"wheel-speed sensor FR: missing tooth / irregular tooth period",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"30040":{
+"dtc":"0x5DA6",
+"d":"wheel-speed sensor FR: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40001":{
+"dtc":"0x5DB0",
+"d":"wheel-speed sensor RL: sensor status report from the wheel-sensor ASIC (open / short / supply)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40002":{
+"dtc":"0x5DB1",
+"d":"wheel-speed sensor RL: glitch recovery lasting too long above 20 km/h",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40004":{
+"dtc":"0x5DB5",
+"d":"wheel-speed sensor RL: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40008":{
+"dtc":"0x5DB3",
+"d":"wheel-speed sensor RL: wheel below the slow-wheel / standstill limit (wheel stuck or sensor dead)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40010":{
+"dtc":"0x5DB4",
+"d":"wheel-speed sensor RL: ABS phase on this wheel for more than 2800 frames (28 s)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40020":{
+"dtc":"0x5DB2",
+"d":"wheel-speed sensor RL: missing tooth / irregular tooth period",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"40040":{
+"dtc":"0x5DB6",
+"d":"wheel-speed sensor RL: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50001":{
+"dtc":"0x5DC0",
+"d":"wheel-speed sensor RR: sensor status report from the wheel-sensor ASIC (open / short / supply)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50002":{
+"dtc":"0x5DC1",
+"d":"wheel-speed sensor RR: glitch recovery lasting too long above 20 km/h",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50004":{
+"dtc":"0x5DC5",
+"d":"wheel-speed sensor RR: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50008":{
+"dtc":"0x5DC3",
+"d":"wheel-speed sensor RR: wheel below the slow-wheel / standstill limit (wheel stuck or sensor dead)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50010":{
+"dtc":"0x5DC4",
+"d":"wheel-speed sensor RR: ABS phase on this wheel for more than 2800 frames (28 s)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50020":{
+"dtc":"0x5DC2",
+"d":"wheel-speed sensor RR: missing tooth / irregular tooth period",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"50040":{
+"dtc":"0x5DC6",
+"d":"wheel-speed sensor RR: sensor status report from the wheel-sensor ASIC",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60001":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 0)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60002":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 1)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60004":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 2)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60008":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 3)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60010":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 4)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60020":{
+"dtc":"0x5DF5",
+"d":"valve relay / pump (bit 5)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60100":{
+"dtc":"0x5DF0",
+"d":"pump motor fault (pump_fault_report)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60200":{
+"dtc":"0x5DF0",
+"d":"pump motor fault (pump_fault_report)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60400":{
+"dtc":"0x5DF0",
+"d":"pump motor fault (pump_fault_report)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"60800":{
+"dtc":"0x5DF1",
+"d":"valve relay / pump fault",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"70001":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 0",
+"lamp":"?",
+"eff":"not traced"
+},
+"70002":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 1",
+"lamp":"?",
+"eff":"not traced"
+},
+"70004":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 2",
+"lamp":"?",
+"eff":"not traced"
+},
+"70008":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 3",
+"lamp":"?",
+"eff":"not traced"
+},
+"70010":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 4",
+"lamp":"?",
+"eff":"not traced"
+},
+"70020":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 5",
+"lamp":"?",
+"eff":"not traced"
+},
+"70040":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 6",
+"lamp":"?",
+"eff":"not traced"
+},
+"70080":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 7",
+"lamp":"?",
+"eff":"not traced"
+},
+"70100":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 8",
+"lamp":"?",
+"eff":"not traced"
+},
+"70200":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 9",
+"lamp":"?",
+"eff":"not traced"
+},
+"70400":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 10",
+"lamp":"?",
+"eff":"not traced"
+},
+"70800":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 11",
+"lamp":"?",
+"eff":"not traced"
+},
+"71000":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 12",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"72000":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 13",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"74000":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 14",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"78000":{
+"dtc":"0x5DF5",
+"d":"valve-driver fault bit 15",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"80001":{
+"dtc":"0x5DF4",
+"d":"hydraulic / USV (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80002":{
+"dtc":"0x5DF7",
+"d":"hydraulic / USV (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80004":{
+"dtc":"0x5DF5",
+"d":"hydraulic / USV (bit 2)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80008":{
+"dtc":"0x5E26",
+"d":"hydraulic / USV (bit 3)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80010":{
+"dtc":"0x5E26",
+"d":"hydraulic / USV (bit 4)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80020":{
+"dtc":"0x5D97",
+"d":"hydraulic / USV (bit 5)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80040":{
+"dtc":"0x5D97",
+"d":"hydraulic / USV (bit 6)",
+"lamp":"?",
+"eff":"not traced"
+},
+"80800":{
+"dtc":"0x5E4F",
+"d":"hydraulic / USV (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"81000":{
+"dtc":"0x5E4E",
+"d":"hydraulic / USV (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"84000":{
+"dtc":"0x5DD1",
+"d":"hydraulic / USV (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"88000":{
+"dtc":"0x5DD0",
+"d":"USV disabled / USV learn aborted",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"90001":{
+"dtc":"0x5E2F",
+"d":"brake switch / fluid (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"90002":{
+"dtc":"0x5E2F",
+"d":"brake switch / fluid (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"90010":{
+"dtc":"0x5E5E",
+"d":"brake-light switch fault",
+"lamp":"no",
+"eff":"pedal switch ignored by brake-TCS inhibit"
+},
+"90020":{
+"dtc":"0x5E5E",
+"d":"brake-light switch fault",
+"lamp":"no",
+"eff":"pedal switch ignored by brake-TCS inhibit"
+},
+"90100":{
+"dtc":"0x5E5D",
+"d":"brake switch / fluid (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"90200":{
+"dtc":"0x5E5D",
+"d":"brake fluid level (no raiser in this firmware)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"90400":{
+"dtc":"0x5D97",
+"d":"brake switch / fluid (bit 10)",
+"lamp":"?",
+"eff":"not traced"
+},
+"90800":{
+"dtc":"0x5D97",
+"d":"brake switch / fluid (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"91000":{
+"dtc":"0x5E5B",
+"d":"brake switch / fluid (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"92000":{
+"dtc":"0x5E5C",
+"d":"brake switch / fluid (bit 13)",
+"lamp":"?",
+"eff":"not traced"
+},
+"94000":{
+"dtc":"0x5DFF",
+"d":"brake switch / fluid (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"A0001":{
+"dtc":"0x5DF2",
+"d":"CAN controller / bus fault",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"A0002":{
+"dtc":"0x5E11",
+"d":"CAN bus fault (suppresses the other CAN faults while set)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"A0004":{
+"dtc":"0x5E11",
+"d":"CAN controller / bus fault",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"A0008":{
+"dtc":"0x5E14",
+"d":"engine CAN signals timed out (no DME on the bus)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"A0010":{
+"dtc":"0x5E15",
+"d":"CAN receive timeout (message watchdog 0x1242c)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A0020":{
+"dtc":"0x5E1A",
+"d":"engine data implausible: rpm invalid, torque 0xFF or engine-status bit set",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"A0040":{
+"dtc":"0x5E1E",
+"d":"steering frame 0x0C2 alive counter frozen, or sensor-cluster communication fault",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"A0080":{
+"dtc":"0x5DF4",
+"d":"CAN (bit 7)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A0100":{
+"dtc":"0x5DF2",
+"d":"CAN (bit 8)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A0200":{
+"dtc":"0x5D99",
+"d":"CAN (bit 9)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A0400":{
+"dtc":"0x5D99",
+"d":"CAN (bit 10)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A1000":{
+"dtc":"0x5D8C",
+"d":"CAN (bit 12)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A4000":{
+"dtc":"0x5D8E",
+"d":"CAN (bit 14)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"A8000":{
+"dtc":"0x5D8F",
+"d":"CAN (bit 15)",
+"lamp":"no",
+"eff":"logged (CAN)"
+},
+"B0002":{
+"dtc":"0x5E1F",
+"d":"CAN signal fault (no direct raiser found in the code)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"B0004":{
+"dtc":"0x5E16",
+"d":"0x520 mode field = 3 without mode 2 seen (transmission message)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"B0010":{
+"dtc":"0x5E18",
+"d":"engine message 0x280 error bit (byte 0 bit 7) set",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"B0040":{
+"dtc":"0x5E19",
+"d":"gear-signal source bit on 0x440",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"B0800":{
+"dtc":"0x5E52",
+"d":"CAN signal (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"B1000":{
+"dtc":"0x5E53",
+"d":"CAN signal (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"B2000":{
+"dtc":"0x5E2D",
+"d":"CAN signal (bit 13)",
+"lamp":"?",
+"eff":"not traced"
+},
+"B4000":{
+"dtc":"0x5E2E",
+"d":"CAN signal (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"C0001":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 0)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0002":{
+"dtc":"0x5E59",
+"d":"vehicle coding out of range (row > 48 or field1 > 1); coding reset to row 0",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0004":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 2)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0008":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 3)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0010":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 4)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0020":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 5)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0040":{
+"dtc":"0x5E59",
+"d":"vehicle coding mirror checksum wrong (EEPROM 0x0FA); coding reset to row 0",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C0080":{
+"dtc":"0x5E59",
+"d":"coding / variant (bit 7)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"C1000":{
+"dtc":"0x5E58",
+"d":"CAN scan / tester fault: any frame on 0x2C0, or 0x5DC with the flag bit set",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"C2000":{
+"dtc":"0x5E5F",
+"d":"coding / variant fault",
+"lamp":"?",
+"eff":"not traced"
+},
+"C8000":{
+"dtc":"0x5E54",
+"d":"coding / variant (bit 15)",
+"lamp":"no",
+"eff":"brake TCS + ASR off (no ABS lamp)"
+},
+"D0001":{
+"dtc":"0x5E34",
+"d":"group 0xD (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"D0002":{
+"dtc":"0x5E34",
+"d":"group 0xD (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"D0004":{
+"dtc":"0x5E35",
+"d":"group 0xD (bit 2)",
+"lamp":"?",
+"eff":"not traced"
+},
+"D0008":{
+"dtc":"0x5E34",
+"d":"group 0xD (bit 3)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0001":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0002":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0004":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 2)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0008":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 3)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0010":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 4)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0020":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 5)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0040":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 6)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0080":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 7)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0100":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0200":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 9)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0400":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 10)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F0800":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F1000":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F2000":{
+"dtc":"0x5D8F",
+"d":"unused bit (bit 13)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F4000":{
+"dtc":"0x5D97",
+"d":"unused bit (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"F8000":{
+"dtc":"0x5D97",
+"d":"unused bit (bit 15)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100001":{
+"dtc":"0x5E38",
+"d":"group 0x10 (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100002":{
+"dtc":"0x5E38",
+"d":"group 0x10 (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100004":{
+"dtc":"0x5E38",
+"d":"group 0x10 (bit 2)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100008":{
+"dtc":"0x5E38",
+"d":"group 0x10 (bit 3)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100010":{
+"dtc":"0x5E3C",
+"d":"group 0x10 (bit 4)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100020":{
+"dtc":"0x5E3C",
+"d":"group 0x10 (bit 5)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100040":{
+"dtc":"0x5E3C",
+"d":"group 0x10 (bit 6)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100100":{
+"dtc":"0x5E30",
+"d":"group 0x10 (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100200":{
+"dtc":"0x5E30",
+"d":"group 0x10 (bit 9)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100400":{
+"dtc":"0x5E30",
+"d":"group 0x10 (bit 10)",
+"lamp":"?",
+"eff":"not traced"
+},
+"100800":{
+"dtc":"0x5E30",
+"d":"group 0x10 (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"101000":{
+"dtc":"0x5E32",
+"d":"group 0x10 (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"102000":{
+"dtc":"0x5E32",
+"d":"group 0x10 (bit 13)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110001":{
+"dtc":"0x5E20",
+"d":"pressure sensing / brake assist (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110002":{
+"dtc":"0x5E20",
+"d":"pressure sensing / brake assist (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110004":{
+"dtc":"0x5E20",
+"d":"brake-assist (HBA) fault",
+"lamp":"no",
+"eff":"brake TCS off (no ABS lamp)"
+},
+"110040":{
+"dtc":"0x5E24",
+"d":"pressure sensing / brake assist (bit 6)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110100":{
+"dtc":"0x5E20",
+"d":"pressure sensing / brake assist (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110200":{
+"dtc":"0x5E20",
+"d":"pressure sensing / brake assist (bit 9)",
+"lamp":"?",
+"eff":"not traced"
+},
+"110400":{
+"dtc":"0x5E20",
+"d":"brake-assist (HBA) fault",
+"lamp":"no",
+"eff":"brake TCS off (no ABS lamp)"
+},
+"110800":{
+"dtc":"0x5E24",
+"d":"pressure sensing / brake assist (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"111000":{
+"dtc":"0x5E24",
+"d":"pressure sensing / brake assist (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"114000":{
+"dtc":"0x5E25",
+"d":"pressure sensing / brake assist (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"120001":{
+"dtc":"0x5E40",
+"d":"steering offset out of range",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120002":{
+"dtc":"0x5E40",
+"d":"steering plausibility vs wheel speeds failed (verified state)",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120004":{
+"dtc":"0x5E40",
+"d":"steering plausibility vs yaw / lateral accel failed",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120008":{
+"dtc":"0x5E1F",
+"d":"steering sensor never reported initialised (30 retries)",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120010":{
+"dtc":"0x5E43",
+"d":"0x0C2 checksum wrong, sensor state 3, or re-init timeout",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120020":{
+"dtc":"0x5E40",
+"d":"steering verification timeout (NVM latched, re-raised every start)",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120040":{
+"dtc":"0x5E40",
+"d":"steering verification timeout (NVM latched, re-raised every start)",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"120080":{
+"dtc":"0x5E1F",
+"d":"steering offset never calibrated (raised every cycle until a steering zero cal)",
+"lamp":"no",
+"eff":"yaw/ay/steering untrusted, DSC off (no ABS lamp)"
+},
+"130400":{
+"dtc":"0x5E28",
+"d":"group 0x13 (bit 10)",
+"lamp":"?",
+"eff":"not traced"
+},
+"131000":{
+"dtc":"0x5E29",
+"d":"group 0x13 (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140001":{
+"dtc":"0x5E00",
+"d":"group 0x14 (bit 0)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140002":{
+"dtc":"0x5E01",
+"d":"group 0x14 (bit 1)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140008":{
+"dtc":"0x5E02",
+"d":"group 0x14 (bit 3)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140010":{
+"dtc":"0x5E03",
+"d":"group 0x14 (bit 4)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140020":{
+"dtc":"0x5E04",
+"d":"group 0x14 (bit 5)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140040":{
+"dtc":"0x5E05",
+"d":"group 0x14 (bit 6)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140080":{
+"dtc":"0x5E06",
+"d":"group 0x14 (bit 7)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140100":{
+"dtc":"0x5E07",
+"d":"group 0x14 (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"140200":{
+"dtc":"0x5E08",
+"d":"group 0x14 (bit 9)",
+"lamp":"?",
+"eff":"not traced"
+},
+"150004":{
+"dtc":"0x5DD2",
+"d":"master-pressure sensor invalid (also raised by a failed inlet-valve learn)",
+"lamp":"yes",
+"eff":"ABS off, ABS lamp"
+},
+"150080":{
+"dtc":"0x5DF5",
+"d":"master-pressure sensor (bit 7)",
+"lamp":"?",
+"eff":"not traced"
+},
+"150100":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 8)",
+"lamp":"?",
+"eff":"not traced"
+},
+"150200":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 9)",
+"lamp":"?",
+"eff":"not traced"
+},
+"150400":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 10)",
+"lamp":"?",
+"eff":"not traced"
+},
+"150800":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 11)",
+"lamp":"?",
+"eff":"not traced"
+},
+"151000":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 12)",
+"lamp":"?",
+"eff":"not traced"
+},
+"152000":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 13)",
+"lamp":"?",
+"eff":"not traced"
+},
+"154000":{
+"dtc":"0x5DD3",
+"d":"master-pressure sensor (bit 14)",
+"lamp":"?",
+"eff":"not traced"
+},
+"1C0001":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 0",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0002":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 1",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0004":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 2",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0008":{
+"dtc":"0x5D9E",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 3",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0020":{
+"dtc":"0x5D9C",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 5",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0040":{
+"dtc":"0x5D9B",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 6",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0080":{
+"dtc":"0x5D9D",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 7",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0100":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 8",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0200":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 9",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0400":{
+"dtc":"0x5D9A",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 10",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C0800":{
+"dtc":"0x5D9B",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 11",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C1000":{
+"dtc":"0x5D9B",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 12",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1C4000":{
+"dtc":"0x5D9F",
+"d":"wheel-pressure sensor FL: signal / plausibility bit 14",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0001":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 0",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0002":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 1",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0004":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 2",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0008":{
+"dtc":"0x5DAE",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 3",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0020":{
+"dtc":"0x5DAC",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 5",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0040":{
+"dtc":"0x5DAB",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 6",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0080":{
+"dtc":"0x5DAD",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 7",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0100":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 8",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0200":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 9",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0400":{
+"dtc":"0x5DAA",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 10",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D0800":{
+"dtc":"0x5DAB",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 11",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D1000":{
+"dtc":"0x5DAB",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 12",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1D4000":{
+"dtc":"0x5DAF",
+"d":"wheel-pressure sensor FR: signal / plausibility bit 14",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0001":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 0",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0002":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 1",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0004":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 2",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0008":{
+"dtc":"0x5DBE",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 3",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0020":{
+"dtc":"0x5DBC",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 5",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0040":{
+"dtc":"0x5DBB",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 6",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0080":{
+"dtc":"0x5DBD",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 7",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0100":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 8",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0200":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 9",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0400":{
+"dtc":"0x5DBA",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 10",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E0800":{
+"dtc":"0x5DBB",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 11",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E1000":{
+"dtc":"0x5DBB",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 12",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1E4000":{
+"dtc":"0x5DBF",
+"d":"wheel-pressure sensor RL: signal / plausibility bit 14",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0001":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 0",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0002":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 1",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0004":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 2",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0008":{
+"dtc":"0x5DCE",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 3",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0020":{
+"dtc":"0x5DCC",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 5",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0040":{
+"dtc":"0x5DCB",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 6",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0080":{
+"dtc":"0x5DCD",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 7",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0100":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 8",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0200":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 9",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0400":{
+"dtc":"0x5DCA",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 10",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F0800":{
+"dtc":"0x5DCB",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 11",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F1000":{
+"dtc":"0x5DCB",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 12",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+},
+"1F4000":{
+"dtc":"0x5DCF",
+"d":"wheel-pressure sensor RR: signal / plausibility bit 14",
+"lamp":"no",
+"eff":"sensor dropped by Z4 pressure code"
+}
+}

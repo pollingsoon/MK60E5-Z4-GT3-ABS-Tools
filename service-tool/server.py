@@ -56,6 +56,7 @@ def _dispatch(action, body):
         "session":        lambda: mod.enter_session(_hexint(body["level"])),
         "unlock":         lambda: mod.unlock(_hexint(body["level"])),
         "tester_present": mod.tester_present,
+        "read_ident":     lambda: mod.read_ident(_hexint(body.get("id", 0x94))),
         "read_dtcs":      mod.read_dtcs,
         "clear_dtcs":     mod.clear_dtcs,
         "read_coding":    mod.read_coding,
