@@ -47,7 +47,8 @@
   <span id="conn" class="pill">not connected</span>
   <span id="sess" class="pill">session -</span>
   <span id="sec" class="pill">security -</span>
-  <span id="swid" class="pill" title="software identification ($1A 94)">sw -</span>
+  <span id="zb" class="pill" title="BMW part number ($1A 80)">ZB -</span>
+  <span id="swid" class="pill" title="software identification ($1A 94)">SW -</span>
 </header>
 <main>
   <div class="bar">
@@ -57,11 +58,8 @@
     <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
     <span style="flex:1"></span>
-    <button onclick="session(0x81)">Default session (10 81)</button>
-    <button onclick="session(0x87)">Adjustment session (10 87)</button>
-    <button onclick="unlock(0x7F)">Unlock: coding write (0x7F)</button>
-    <button onclick="unlock(0x7E)">Unlock: CCP (0x7E)</button>
-    <button onclick="unlock(0x03)">Unlock: level 3 (0x03)</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
   </div>
   <div id="unsupported"></div>
 
@@ -75,7 +73,7 @@
 
   <section id="faults" class="active"><div class="card">
     <h2>Identification ($1A)</h2>
-    <p>0x94 is the software-identification string fixed in flash; 0x80 / 0x8F / 0x90 / 0x99 are the EEPROM ident records. Read automatically on connect.</p>
+    <p>0x94 is the software-identification string fixed in flash; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
     <div class="row"><button onclick="readIdent(0x94)">Software ID (1A 94)</button>
       <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
       <button onclick="readIdent(0x90)">0x90</button><button onclick="readIdent(0x99)">0x99</button></div>
@@ -89,7 +87,7 @@
 
   <section id="coding"><div class="card">
     <h2>Vehicle coding ($23 / $3D)</h2>
-    <p>EEPROM 0x0FA–0x0FC. Writing needs <b>10 87</b> + <b>Unlock 0x7F</b>; effective next power-on.</p>
+    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (afb10 field); effective next power-on.</p>
     <div class="row"><button onclick="readCoding()">Read coding</button></div>
     <div id="coding-out"></div>
     <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
@@ -675,7 +673,9 @@ class MockKwp {
       if (id === 0x94) return [0x5A, 0x94, ...SW_IDENT_94];
       const n = IDENT_LEN[id];
       if (n === undefined) throw new KwpError(0x12);
-      return [0x5A, id, ...new Array(n).fill(0)];   // EEPROM-backed blocks: content not on file
+      const blk = new Array(n).fill(0);            // EEPROM-backed blocks: content not on file
+      if (id === 0x80) blk.splice(2, 4, 0x06, 0x76, 0x91, 0x62);   // part number 6769162, packed BCD at bytes 2..5
+      return [0x5A, id, ...blk];
     }
     if (s === 0x18) {                     // read DTC by status
       const o = [0x58, this.dtcs.length];
@@ -747,13 +747,18 @@ class Module {
     if (l === 0x03) {
       key = ktSeedrev(seed);
     } else if (l === 0x7E) {
-      if (!this.keys.afb9e) throw new KwpError(0x33);
+      if (!this.keys.afb9e) throw new Error("no afb9e constant: type it in the toolbar field and retry");
       key = ktAfb9e(seed, this.keys.afb9e);
     } else {
-      if (!this.keys.afb10) throw new KwpError(0x33);
+      if (!this.keys.afb10) throw new Error("no afb10 constant: type it in the toolbar field and retry");
       key = ktAfb10(seed, this.keys.afb10);
     }
-    await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
+    try {
+      await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
+    } catch (e) {
+      if (e.nrc === 0x10) throw new Error(`key 0x${key.toString(16)} rejected for seed 0x${seed.toString(16)} (NRC 0x10): wrong constant for this unit`);
+      throw e;
+    }
     return { level: `0x${l.toString(16)}`, seed: `0x${seed.toString(16)}`, key: `0x${key.toString(16)}` };
   }
 
@@ -761,6 +766,13 @@ class Module {
     const b = await this.t.request([0x1A, id]);
     const d = Array.from((b.length >= 2 && b[0] === 0x5A) ? b.slice(2) : b);
     const out = { id, bytes: d, source: IDENT_SRC[id] || "?" };
+    if (id === 0x80 && d.length >= 6) {
+      // BMW part number (ZB): packed BCD in bytes 2..5 of the 0x80 block (5A 80 00 00 <ZB:4> ...)
+      const bcd = d.slice(2, 6);
+      if (bcd.every(b => (b >> 4) <= 9 && (b & 0xF) <= 9)) {
+        out.zb = bcd.map(b => b.toString(16).padStart(2, '0')).join('').replace(/^0+/, '') || "0";
+      }
+    }
     const n = d[0];
     if (id === 0x94 && d.length > 1 && n > 0 && n < d.length &&
         d.slice(1, 1 + n).every(c => c >= 0x20 && c < 0x7F)) {
@@ -770,6 +782,19 @@ class Module {
       out.ascii = d.map(c => (c >= 0x20 && c < 0x7F) ? String.fromCharCode(c) : ".").join("");
     }
     return out;
+  }
+
+  // One-click sequences, order-independent: open the adjustment session, then unlock.
+  async enableCodingWrite() {
+    await this.session(0x87);
+    return await this.unlock(0x7F);
+  }
+
+  async enableCcp() {
+    await this.session(0x87);
+    const u = await this.unlock(0x7E);
+    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN (bench-proven bytes)
+    return u;
   }
 
   async readDtcs() {
@@ -798,6 +823,7 @@ class Module {
   }
 
   async writeCoding(row, f1) {
+    await this.enableCodingWrite();            // session + 0x7F, whatever was clicked before
     const ck = ((row ^ f1) + 1) & 0xFF;
     const writes = [[0xFB, row], [0xFC, f1], [0xFA, ck]];
     const done = [];
@@ -809,6 +835,7 @@ class Module {
   }
 
   async routine(rid) {
+    await this.session(0x87);                 // routines need the adjustment session
     await this.t.request([0x31, rid]);
   }
 
@@ -860,42 +887,57 @@ if (!("serial" in navigator)) {
     "Web Serial not available in this browser (use Chrome/Edge over https or localhost). Mock mode still works.";
 }
 
+// The $27 constants are read from the toolbar fields whenever they are needed, so they
+// can be typed or corrected after connecting.
+function readKeys() {
+  const keys = {};
+  if ($("#k9e").value.trim()) keys.afb9e = hx($("#k9e").value.trim());
+  if ($("#k10").value.trim()) keys.afb10 = hx($("#k10").value.trim());
+  return keys;
+}
+
 async function connect() {
   try {
-    const keys = {};
-    if ($("#k9e").value) keys.afb9e = hx($("#k9e").value);
-    if ($("#k10").value) keys.afb10 = hx($("#k10").value);
+    const keys = readKeys();
     const t = $("#mode").value === "serial" ? new WebSerialKwp(parseInt($("#baud").value)) : new MockKwp();
     await t.connect();
     mod = new Module(t, keys);
     $("#conn").textContent = t.kind;
     $("#conn").className = "pill on";
     log(`connected (${t.kind}); keys: ${Object.keys(keys).join(", ") || "none"}`, "ok");
-    readIdent(0x94, true);
+    await readIdent(0x80, true);   // ZB (part number)
+    await readIdent(0x94, true);   // software ID
   } catch (e) {
     log("connect: " + e.message, "bad");
   }
 }
 
-async function session(l) {
+function setSess(t) { $("#sess").textContent = t; $("#sess").className = "pill on"; }
+function setSec(t) { $("#sec").textContent = t; $("#sec").className = "pill on"; }
+
+// Both unlock buttons run the whole sequence themselves (10 87, seed, key, ...), so nothing
+// has to be clicked in a particular order first.
+async function enableCodingWrite() {
   try {
-    await mod.session(l);
-    $("#sess").textContent = "session 0x" + l.toString(16);
-    $("#sess").className = "pill on";
-    log("session 0x" + l.toString(16), "ok");
+    mod.keys = readKeys();
+    const j = await mod.enableCodingWrite();
+    setSess("session 0x87");
+    setSec("coding write (0x7F)");
+    log(`coding write enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''}`, "ok");
   } catch (e) {
-    log("session: " + e.message, "bad");
+    log("enable coding write: " + e.message, "bad");
   }
 }
 
-async function unlock(l) {
+async function enableCcp() {
   try {
-    const j = await mod.unlock(l);
-    $("#sec").textContent = "security " + j.level;
-    $("#sec").className = "pill on";
-    log(`unlock ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (open)' : ''}`, "ok");
+    mod.keys = readKeys();
+    const j = await mod.enableCcp();
+    setSess("session 0x87");
+    setSec("CCP (0x7E) + 31 31 01");
+    log(`CCP enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''} + 31 31 01`, "ok");
   } catch (e) {
-    log("unlock: " + e.message, "bad");
+    log("enable CCP: " + e.message, "bad");
   }
 }
 
@@ -930,10 +972,15 @@ async function readIdent(id, quiet) {
     const j = await mod.readIdent(id);
     const hid = "0x" + id.toString(16).toUpperCase();
     let h = `<table><tr><th>$1A id</th><th>source</th><th>decoded</th><th>bytes</th></tr>`;
-    if (j.swId !== undefined) {
+    if (j.zb !== undefined) {
+      h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">ZB ${j.zb}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+      $("#zb").textContent = "ZB " + j.zb;
+      $("#zb").className = "pill on";
+      log(`part number ZB ${j.zb}`, "ok");
+    } else if (j.swId !== undefined) {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
            `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
-      $("#swid").textContent = "sw " + j.swId;
+      $("#swid").textContent = "SW " + j.swId;
       $("#swid").className = "pill on";
       log(`software id ${j.swId}`, "ok");
     } else {
@@ -974,7 +1021,7 @@ async function readCoding() {
 
 async function writeCoding() {
   const row = +$("#row").value, f1 = +$("#field1").value;
-  if (!confirm(`Write coding row=${row} field1=${f1}? Needs 10 87 + 0x7F. Effective next power-on.`)) return;
+  if (!confirm(`Write coding row=${row} field1=${f1}? Session and unlock are done automatically. Effective next power-on.`)) return;
   try {
     const done = await mod.writeCoding(row, f1);
     log("coding written: " + done.join(' '), "ok");

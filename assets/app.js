@@ -46,10 +46,17 @@ function setConnected(on) {
 }
 setConnected(false);
 
-async function connect() {
+// The $27 constants are read from the toolbar fields whenever they are needed, so they
+// can be typed or corrected after connecting.
+function readKeys() {
   const keys = {};
-  if ($("#k9e").value) keys.afb9e = hx($("#k9e").value);
-  if ($("#k10").value) keys.afb10 = hx($("#k10").value);
+  if ($("#k9e").value.trim()) keys.afb9e = hx($("#k9e").value.trim());
+  if ($("#k10").value.trim()) keys.afb10 = hx($("#k10").value.trim());
+  return keys;
+}
+
+async function connect() {
+  const keys = readKeys();
   const target = $("#target") ? $("#target").value : "z4";
   const cfg = TARGETS[target] || TARGETS.z4;
   const t = $("#mode").value === "serial"
@@ -68,28 +75,36 @@ async function connect() {
   $("#conn").textContent = t.kind === "mock" ? "mock" : `${cfg.label} (${cfg.proto === "kwp" ? "K-line" : "D-CAN"})`;
   $("#conn").className = "pill on";
   log(`connected to ${cfg.label} (${t.kind}); keys: ${Object.keys(keys).join(", ") || "none"}`, "ok");
-  readIdent(0x94, true);
+  await readIdent(0x80, true);   // ZB (part number)
+  await readIdent(0x94, true);   // software ID
 }
 
-async function session(l) {
+function setSess(t) { $("#sess").textContent = t; $("#sess").className = "pill on"; }
+function setSec(t) { $("#sec").textContent = t; $("#sec").className = "pill on"; }
+
+// Both unlock buttons run the whole sequence themselves (10 87, seed, key, ...), so nothing
+// has to be clicked in a particular order first.
+async function enableCodingWrite() {
   try {
-    await mod.session(l);
-    $("#sess").textContent = "session 0x" + l.toString(16);
-    $("#sess").className = "pill on";
-    log("session 0x" + l.toString(16), "ok");
+    mod.keys = readKeys();
+    const j = await mod.enableCodingWrite();
+    setSess("session 0x87");
+    setSec("coding write (0x7F)");
+    log(`coding write enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''}`, "ok");
   } catch (e) {
-    log("session: " + e.message, "bad");
+    log("enable coding write: " + e.message, "bad");
   }
 }
 
-async function unlock(l) {
+async function enableCcp() {
   try {
-    const j = await mod.unlock(l);
-    $("#sec").textContent = "security " + j.level;
-    $("#sec").className = "pill on";
-    log(`unlock ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (open)' : ''}`, "ok");
+    mod.keys = readKeys();
+    const j = await mod.enableCcp();
+    setSess("session 0x87");
+    setSec("CCP (0x7E) + 31 31 01");
+    log(`CCP enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''} + 31 31 01`, "ok");
   } catch (e) {
-    log("unlock: " + e.message, "bad");
+    log("enable CCP: " + e.message, "bad");
   }
 }
 
@@ -124,10 +139,15 @@ async function readIdent(id, quiet) {
     const j = await mod.readIdent(id);
     const hid = "0x" + id.toString(16).toUpperCase();
     let h = `<table><tr><th>$1A id</th><th>source</th><th>decoded</th><th>bytes</th></tr>`;
-    if (j.swId !== undefined) {
+    if (j.zb !== undefined) {
+      h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">ZB ${j.zb}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+      $("#zb").textContent = "ZB " + j.zb;
+      $("#zb").className = "pill on";
+      log(`part number ZB ${j.zb}`, "ok");
+    } else if (j.swId !== undefined) {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
            `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
-      $("#swid").textContent = "sw " + j.swId;
+      $("#swid").textContent = "SW " + j.swId;
       $("#swid").className = "pill on";
       log(`software id ${j.swId}`, "ok");
     } else {
@@ -168,7 +188,7 @@ async function readCoding() {
 
 async function writeCoding() {
   const row = +$("#row").value, f1 = +$("#field1").value;
-  if (!confirm(`Write coding row=${row} field1=${f1}? Needs 10 87 + 0x7F. Effective next power-on.`)) return;
+  if (!confirm(`Write coding row=${row} field1=${f1}? Session and unlock are done automatically. Effective next power-on.`)) return;
   try {
     const done = await mod.writeCoding(row, f1);
     log("coding written: " + done.join(' '), "ok");

@@ -35,6 +35,7 @@ present; without them, mock mode still works.
 
 | Feature | Service(s) | Preconditions |
 |---|---|---|
+| Part number (ZB) | `$1A 80` -> `5A 80 00 00 <ZB: 4 bytes packed BCD> ...` (29 bytes; indices and dates follow) | none; read on connect |
 | Software ID / identification | `$1A 94` -> `5A 94` + 30 bytes from flash `0x76d4` (software ID string + binary tail); `$1A 80/8F/90/99` EEPROM ident records | none; read on connect |
 | Read faults | `$18 02 FF FF` -> `58 count [hi lo status]...` | none |
 | Clear faults | `$14 FF 00` | none (coding DTC returns next power-on) |
@@ -86,7 +87,7 @@ values:
 { "6769162": { "afb9e": "0x....", "afb10": "0x...." } }
 ```
 
-Mock mode needs no key. Level `0x03` needs none (image-independent).
+Mock mode needs no key. The two toolbar buttons, **Unlock: Enable CCP** (`10 87`, `27 FB/FC` with afb9e, `31 31 01`) and **Unlock: Enable Coding Write** (`10 87`, `27 FD/FE` with afb10), run their whole sequence in order; coding writes and calibration routines open the session they need themselves. The constants are read from the fields at the moment you click, so they can be typed after connecting.
 
 ## Safety
 

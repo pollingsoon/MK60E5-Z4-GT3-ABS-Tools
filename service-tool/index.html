@@ -48,7 +48,8 @@
   <span id="conn" class="pill">not connected</span>
   <span id="sess" class="pill">session -</span>
   <span id="sec" class="pill">security -</span>
-  <span id="swid" class="pill" title="software identification ($1A 94)">sw -</span>
+  <span id="zb" class="pill" title="BMW part number ($1A 80)">ZB -</span>
+  <span id="swid" class="pill" title="software identification ($1A 94)">SW -</span>
 </header>
 <main>
   <div class="bar">
@@ -57,11 +58,8 @@
     <input id="baud" value="9600" style="width:5em" disabled>
     <button class="primary" onclick="connect()">Connect</button>
     <span style="flex:1"></span>
-    <button onclick="session(0x81)">Default session (10 81)</button>
-    <button onclick="session(0x87)">Adjustment session (10 87)</button>
-    <button onclick="unlock(0x7F)">Unlock: coding write (0x7F)</button>
-    <button onclick="unlock(0x7E)">Unlock: CCP (0x7E)</button>
-    <button onclick="unlock(0x03)">Unlock: level 3 (0x03)</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
   </div>
 
   <div class="tabs">
@@ -75,7 +73,7 @@
   <section id="faults" class="active">
     <div class="card">
       <h2>Identification ($1A)</h2>
-      <p>0x94 is the software-identification string fixed in flash at 0x76d4; 0x80 / 0x8F / 0x90 / 0x99 are the EEPROM ident records. Read automatically on connect.</p>
+      <p>0x94 is the software-identification string fixed in flash at 0x76d4; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
       <div class="row">
         <button onclick="readIdent(0x94)">Software ID (1A 94)</button>
         <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
@@ -95,7 +93,7 @@
   <section id="coding">
     <div class="card">
       <h2>Vehicle coding ($23 read / $3D write)</h2>
-      <p>2 bytes + checksum at EEPROM 0x0FA–0x0FC. Writing needs <b>Adjust 10 87</b> + <b>Unlock 0x7F</b> and takes effect at the next power-on.</p>
+      <p>2 bytes + checksum at EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (seedkey.json); takes effect at the next power-on.</p>
       <div class="row"><button onclick="readCoding()">Read coding</button></div>
       <div id="coding-out"></div>
       <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
@@ -203,17 +201,23 @@ async function connect() {
   $("#conn").textContent = j.kind === "mock" ? "mock" : "serial";
   $("#conn").className = "pill on";
   log(`connected (${j.kind}); seedkey constants: ${j.keys.join(", ") || "none"}`, "ok");
-  readIdent(0x94, true);
+  await readIdent(0x80, true);   // ZB (part number)
+  await readIdent(0x94, true);   // software ID
 }
 
 async function readIdent(id, quiet) {
   try {
     const j = await api("read_ident", { id });
     let h = `<table><tr><th>$1A id</th><th>source</th><th>decoded</th><th>bytes</th></tr>`;
-    if (j.sw_id !== undefined) {
+    if (j.zb !== undefined) {
+      h += `<tr><td>${j.id}</td><td>${j.source}</td><td class="ok">ZB ${j.zb}</td><td>${fmt(j.bytes)}</td></tr></table>`;
+      $("#zb").textContent = "ZB " + j.zb;
+      $("#zb").className = "pill on";
+      log(`part number ZB ${j.zb}`, "ok");
+    } else if (j.sw_id !== undefined) {
       h += `<tr><td>${j.id}</td><td>${j.source}</td><td class="ok">${j.sw_id}</td><td>${fmt(j.bytes)}</td></tr></table>` +
            `<div class="note" style="color:var(--mut)">tail (version/date block, not parsed by the firmware): ${fmt(j.tail)}</div>`;
-      $("#swid").textContent = "sw " + j.sw_id;
+      $("#swid").textContent = "SW " + j.sw_id;
       $("#swid").className = "pill on";
       log(`software id ${j.sw_id}`, "ok");
     } else {
@@ -224,19 +228,25 @@ async function readIdent(id, quiet) {
   } catch (e) { /* logged by api() */ }
 }
 
-async function session(l) {
-  const j = await api("session", { level: l });
-  $("#sess").textContent = "session " + j.session;
-  $("#sess").className = "pill on";
-  log("session " + j.session, "ok");
+function setSess(t) { $("#sess").textContent = t; $("#sess").className = "pill on"; }
+function setSec(t) { $("#sec").textContent = t; $("#sec").className = "pill on"; }
+
+// Both unlock buttons run the whole sequence (10 87, seed, key, ...) server-side, in order.
+async function enableCodingWrite() {
+  try {
+    const j = await api("enable_coding_write");
+    setSess("session 0x87");
+    setSec("coding write (0x7F)");
+    log(`coding write enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''}`, "ok");
+  } catch (e) { /* logged by api() */ }
 }
 
-async function unlock(l) {
+async function enableCcp() {
   try {
-    const j = await api("unlock", { level: l });
-    $("#sec").textContent = "security " + (j.level || l);
-    $("#sec").className = "pill on";
-    log(`unlock ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''}`, "ok");
+    const j = await api("enable_ccp");
+    setSess("session 0x87");
+    setSec("CCP (0x7E) + 31 31 01");
+    log(`CCP enabled: 10 87 + level ${j.level} seed ${j.seed || '-'} key ${j.key || '-'}${j.already ? ' (already open)' : ''} + 31 31 01`, "ok");
   } catch (e) { /* logged by api() */ }
 }
 
@@ -281,7 +291,7 @@ async function readCoding() {
 
 async function writeCoding() {
   const row = +$("#row").value, f1 = +$("#field1").value;
-  if (!confirm(`Write coding row=${row} field1=${f1}? Needs 10 87 + 0x7F. Effective next power-on.`)) return;
+  if (!confirm(`Write coding row=${row} field1=${f1}? Session and unlock are done automatically. Effective next power-on.`)) return;
   try {
     const j = await api("write_coding", { row, field1: f1 });
     log("coding written: " + j.written.map(w => w.addr + "=" + w.value).join(" "), "ok");

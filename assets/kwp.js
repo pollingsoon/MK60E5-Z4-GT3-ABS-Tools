@@ -570,7 +570,9 @@ class MockKwp {
       if (id === 0x94) return [0x5A, 0x94, ...SW_IDENT_94];
       const n = IDENT_LEN[id];
       if (n === undefined) throw new KwpError(0x12);
-      return [0x5A, id, ...new Array(n).fill(0)];   // EEPROM-backed blocks: content not on file
+      const blk = new Array(n).fill(0);            // EEPROM-backed blocks: content not on file
+      if (id === 0x80) blk.splice(2, 4, 0x06, 0x76, 0x91, 0x62);   // part number 6769162, packed BCD at bytes 2..5
+      return [0x5A, id, ...blk];
     }
     if (s === 0x18) {                     // read DTC by status
       const o = [0x58, this.dtcs.length];
@@ -643,13 +645,18 @@ class Module {
     if (l === 0x03) {
       key = ktSeedrev(seed);
     } else if (l === 0x7E) {
-      if (!this.keys.afb9e) throw new KwpError(0x33);
+      if (!this.keys.afb9e) throw new Error("no afb9e constant: type it in the toolbar field and retry");
       key = ktAfb9e(seed, this.keys.afb9e);
     } else {
-      if (!this.keys.afb10) throw new KwpError(0x33);
+      if (!this.keys.afb10) throw new Error("no afb10 constant: type it in the toolbar field and retry");
       key = ktAfb10(seed, this.keys.afb10);
     }
-    await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
+    try {
+      await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
+    } catch (e) {
+      if (e.nrc === 0x10) throw new Error(`key 0x${key.toString(16)} rejected for seed 0x${seed.toString(16)} (NRC 0x10): wrong constant for this unit`);
+      throw e;
+    }
     return { level: `0x${l.toString(16)}`, seed: `0x${seed.toString(16)}`, key: `0x${key.toString(16)}` };
   }
 
@@ -657,6 +664,13 @@ class Module {
     const b = await this.t.request([0x1A, id]);
     const d = Array.from((b.length >= 2 && b[0] === 0x5A) ? b.slice(2) : b);
     const out = { id, bytes: d, source: IDENT_SRC[id] || "?" };
+    if (id === 0x80 && d.length >= 6) {
+      // BMW part number (ZB): packed BCD in bytes 2..5 of the 0x80 block (5A 80 00 00 <ZB:4> ...)
+      const bcd = d.slice(2, 6);
+      if (bcd.every(b => (b >> 4) <= 9 && (b & 0xF) <= 9)) {
+        out.zb = bcd.map(b => b.toString(16).padStart(2, '0')).join('').replace(/^0+/, '') || "0";
+      }
+    }
     const n = d[0];
     if (id === 0x94 && d.length > 1 && n > 0 && n < d.length &&
         d.slice(1, 1 + n).every(c => c >= 0x20 && c < 0x7F)) {
@@ -666,6 +680,19 @@ class Module {
       out.ascii = d.map(c => (c >= 0x20 && c < 0x7F) ? String.fromCharCode(c) : ".").join("");
     }
     return out;
+  }
+
+  // One-click sequences, order-independent: open the adjustment session, then unlock.
+  async enableCodingWrite() {
+    await this.session(0x87);
+    return await this.unlock(0x7F);
+  }
+
+  async enableCcp() {
+    await this.session(0x87);
+    const u = await this.unlock(0x7E);
+    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN (bench-proven bytes)
+    return u;
   }
 
   async readDtcs() {
@@ -696,6 +723,7 @@ class Module {
   }
 
   async writeCoding(row, f1) {
+    await this.enableCodingWrite();            // session + 0x7F, whatever was clicked before
     const ck = ((row ^ f1) + 1) & 0xFF;
     const writes = [[0xFB, row], [0xFC, f1], [0xFA, ck]];
     const done = [];
@@ -707,6 +735,7 @@ class Module {
   }
 
   async routine(rid) {
+    await this.session(0x87);                 // routines need the adjustment session
     await this.t.request([0x31, rid]);
   }
 

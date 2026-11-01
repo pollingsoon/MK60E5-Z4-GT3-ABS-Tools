@@ -185,7 +185,10 @@ class MockKwp:
             if iid == 0x94:
                 return bytes([0x5A, 0x94]) + SW_IDENT_0x94
             if iid in IDENT_BLOCKS:  # EEPROM-backed blocks: content not on file, zero-filled
-                return bytes([0x5A, iid]) + bytes(IDENT_BLOCKS[iid][0])
+                blk = bytearray(IDENT_BLOCKS[iid][0])
+                if iid == 0x80:
+                    blk[2:6] = bytes.fromhex("06769162")  # part number 6769162, packed BCD at bytes 2..5
+                return bytes([0x5A, iid]) + bytes(blk)
             raise KwpError(0x12, NRC[0x12])
         if s == 0x18:  # read DTC by status
             out = bytearray([0x58, len(self.dtcs)])
@@ -362,6 +365,11 @@ class Module:
         data = body[2:] if len(body) >= 2 and body[0] == 0x5A else body
         out = {"id": f"0x{iid:02X}", "bytes": data.hex(), "len": len(data),
                "source": IDENT_BLOCKS.get(iid, (0, "?"))[1]}
+        if iid == 0x80 and len(data) >= 6:
+            # BMW part number (ZB): packed BCD in bytes 2..5 of the 0x80 block (5A 80 00 00 <ZB:4> ...)
+            bcd = data[2:6]
+            if all((b >> 4) <= 9 and (b & 0xF) <= 9 for b in bcd):
+                out["zb"] = bcd.hex().lstrip("0") or "0"
         n = data[0] if data else 0
         s = data[1:1 + n]
         if iid == 0x94 and 0 < n < len(data) and all(0x20 <= b < 0x7F for b in s):
@@ -370,6 +378,17 @@ class Module:
         else:
             out["ascii"] = "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in data)
         return out
+
+    # one-click sequences, order-independent: adjustment session, then unlock
+    def enable_coding_write(self):
+        self.enter_session(0x87)
+        return self.unlock(0x7F)
+
+    def enable_ccp(self):
+        self.enter_session(0x87)
+        u = self.unlock(0x7E)
+        self.t.request([0x31, 0x31, 0x01])  # diagnostic state 4: CCP served on CAN (bench-proven bytes)
+        return u
 
     # faults
     def read_dtcs(self):
@@ -408,7 +427,8 @@ class Module:
                 "checksum_ok": ok, "raw": data.hex()}
 
     def write_coding(self, row, field1=0):
-        """Write row/field1 and the checksum. Needs $10 87 + 0x7F unlock."""
+        """Write row/field1 and the checksum; opens $10 87 + 0x7F itself."""
+        self.enable_coding_write()
         cksum = ((row ^ field1) + 1) & 0xFF
         writes = [(0x00FB, row), (0x00FC, field1), (0x00FA, cksum)]
         done = []
@@ -419,6 +439,7 @@ class Module:
 
     # routines (valve + sensor calibration)
     def run_routine(self, rid, args=None):
+        self.enter_session(0x87)  # routines need the adjustment session
         payload = [0x31, rid] + list(args or [])
         self.t.request(payload)
         return {"started": f"0x{rid:02X}"}

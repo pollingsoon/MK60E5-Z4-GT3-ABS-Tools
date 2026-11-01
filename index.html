@@ -12,7 +12,8 @@
   <span id="conn" class="pill">not connected</span>
   <span id="sess" class="pill">session -</span>
   <span id="sec" class="pill">security -</span>
-  <span id="swid" class="pill" title="software identification ($1A 94)">sw -</span>
+  <span id="zb" class="pill" title="BMW part number ($1A 80)">ZB -</span>
+  <span id="swid" class="pill" title="software identification ($1A 94)">SW -</span>
 </header>
 <main>
   <div class="bar">
@@ -24,11 +25,8 @@
     <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
     <span style="flex:1"></span>
-    <button onclick="session(0x81)">Default session (10 81)</button>
-    <button onclick="session(0x87)">Adjustment session (10 87)</button>
-    <button onclick="unlock(0x7F)">Unlock: coding write (0x7F)</button>
-    <button onclick="unlock(0x7E)">Unlock: CCP (0x7E)</button>
-    <button onclick="unlock(0x03)">Unlock: level 3 (0x03)</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
   </div>
   <div id="unsupported"></div>
 
@@ -94,7 +92,7 @@
 
   <section id="faults"><div class="card">
     <h2>Identification ($1A)</h2>
-    <p>0x94 is the software-identification string fixed in flash; 0x80 / 0x8F / 0x90 / 0x99 are the EEPROM ident records. Read automatically on connect.</p>
+    <p>0x94 is the software-identification string fixed in flash; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
     <div class="row"><button onclick="readIdent(0x94)">Software ID (1A 94)</button>
       <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
       <button onclick="readIdent(0x90)">0x90</button><button onclick="readIdent(0x99)">0x99</button></div>
@@ -108,7 +106,7 @@
 
   <section id="coding"><div class="card">
     <h2>Vehicle coding ($23 / $3D)</h2>
-    <p>EEPROM 0x0FA–0x0FC. Writing needs <b>10 87</b> + <b>Unlock 0x7F</b>; effective next power-on.</p>
+    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (afb10 field); effective next power-on.</p>
     <div class="row"><button onclick="readCoding()">Read coding</button></div>
     <div id="coding-out"></div>
     <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
