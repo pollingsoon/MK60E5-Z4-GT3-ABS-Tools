@@ -7,8 +7,8 @@ BS_:
 BU_: DSC SensorCluster
 
 BO_ 304 Cluster_A: 8 SensorCluster
- SG_ YawRate : 0|16@1- (0.034919,0) [-1144.225792|1144.190873] "deg/s" DSC
- SG_ LateralAccel_Raw : 16|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ YawRate : 0|16@1- (0.0028648,0) [-93.8737664|93.8709016] "deg/s" DSC
+ SG_ LateralAccel : 16|16@1- (0.001,0) [-32.768|32.767] "g" DSC
  SG_ Word4 : 32|16@1- (1,0) [-32768|32767] "" DSC
  SG_ Status_A : 48|2@1+ (1,0) [0|3] "" DSC
  SG_ Status_B : 50|2@1+ (1,0) [0|3] "" DSC
@@ -18,7 +18,7 @@ BO_ 304 Cluster_A: 8 SensorCluster
 BO_ 305 Cluster_B: 8 SensorCluster
  SG_ Word1 : 0|16@1- (1,0) [-32768|32767] "" DSC
  SG_ Word3 : 16|16@1- (1,0) [-32768|32767] "" DSC
- SG_ LongitudinalAccel_Raw : 32|16@1- (1,0) [-32768|32767] "" DSC
+ SG_ LongitudinalAccel : 32|16@1- (0.001,0) [-32.768|32.767] "g" DSC
  SG_ Status_A : 48|2@1+ (1,0) [0|3] "" DSC
  SG_ Status_B : 50|2@1+ (1,0) [0|3] "" DSC
  SG_ AliveCounter : 52|4@1+ (1,0) [0|15] "" DSC
@@ -45,8 +45,8 @@ CM_ BO_ 307 "Sensor cluster, 10 ms: one 16-bit value; reception marks the cluste
 CM_ BO_ 306 "Sensor cluster status, 10 ms: status nibbles, four status bytes and the ready/self-test flags the firmware uses to hold or release the cluster signals. Received by this module, every 10 ms.";
 CM_ BO_ 305 "Sensor cluster, channel set B, 10 ms: two supervision words and the longitudinal acceleration, with status, counter and CRC-8. Received by this module, every 10 ms.";
 CM_ BO_ 304 "Yaw/acceleration sensor cluster, channel set A, 10 ms: yaw rate, lateral acceleration and a supervision word, with status, alive counter and CRC-8. The source of yaw and ay. A frozen counter or bad CRC rejects the frame. Received by this module, every 10 ms.";
-CM_ SG_ 304 YawRate "Yaw rate from the sensor cluster (word 0). Scale derived from the module's own yaw output on 0x4A8. Sign convention opposite to the BMW M3 cluster.";
-CM_ SG_ 304 LateralAccel_Raw "Lateral acceleration from the sensor cluster (word 2), raw.";
+CM_ SG_ 304 YawRate "Yaw rate from the sensor cluster (word 0), 0.5e-4 rad/s per LSB (0.0028648 deg/s). Scale derived from the module's own yaw output on 0x4A8 (0.01 deg/s) and cross-checked against the wheel-speed yaw estimate. Sign convention opposite to the BMW M3 cluster.";
+CM_ SG_ 304 LateralAccel "Lateral acceleration from the sensor cluster (word 2), 0.001 g per LSB. Scale derived from the module's own lateral-acceleration output on 0x5A0 (0.02 g).";
 CM_ SG_ 304 Word4 "Cluster word 4, supervision only.";
 CM_ SG_ 304 Status_A "2-bit status field.";
 CM_ SG_ 304 Status_B "2-bit status field.";
@@ -54,7 +54,7 @@ CM_ SG_ 304 AliveCounter "Frozen counter -> message rejected.";
 CM_ SG_ 304 Checksum "CRC-8 of bytes 0-6 (poly 0x1D, start 0xFF, inverted); mismatch -> message rejected.";
 CM_ SG_ 305 Word1 "Cluster word 1, supervision only.";
 CM_ SG_ 305 Word3 "Cluster word 3, supervision only.";
-CM_ SG_ 305 LongitudinalAccel_Raw "Longitudinal acceleration from the sensor cluster (word 5), raw.";
+CM_ SG_ 305 LongitudinalAccel "Longitudinal acceleration from the sensor cluster (word 5), 0.001 g per LSB. Scale derived from the module's own longitudinal-acceleration output on 0x1AC (0.00408 g).";
 CM_ SG_ 305 Status_A "2-bit status field.";
 CM_ SG_ 305 Status_B "2-bit status field.";
 CM_ SG_ 305 AliveCounter "Own counter.";
