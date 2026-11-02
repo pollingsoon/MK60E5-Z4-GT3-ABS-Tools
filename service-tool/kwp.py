@@ -3,26 +3,23 @@
 
 Two transports with the same .request(payload) -> body contract:
 
-  RealKwp  - drives a K+DCAN cable through the bench-proven kline_ident
-             (mk60-patcher/tools). Target 0x29, KWP2000* framing.
-  MockKwp  - simulates the module from the documented service behaviour and
-             the bench dumps, so the UI runs with no hardware attached.
+  RealKwp  - drives a K+DCAN cable (KWP2000* line settings and framing).
+             Target 0x29. Needs pyserial.
+  MockKwp  - simulates the module from its documented service behaviour,
+             so the UI runs with no hardware attached.
 
 Module wraps either transport with the high-level operations the UI calls:
 read/clear faults, read/write coding, valve- and sensor-calibration routines,
 memory and live-data reads, session and security.
 
-Everything here is grounded in docs/kwp-services.md, docs/dtc.md and
-docs/coding.md. Security constants are loaded at runtime from the gitignored
-reference/seedkey.json; they are never embedded in this file.
+Security constants are loaded at runtime from a gitignored seedkey.json;
+they are never embedded in this file.
 """
 import json
 import os
-import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(os.path.dirname(HERE))  # private analysis repo, when run from there
 TGT = 0x29  # DSC diagnostic address
 
 
@@ -37,18 +34,17 @@ NRC = {0x10: "generalReject", 0x11: "serviceNotSupported", 0x12: "subFuncNotSupp
        0x13: "wrongLength", 0x22: "conditionsNotCorrect", 0x31: "requestOutOfRange",
        0x33: "securityAccessDenied", 0x35: "invalidKey", 0x78: "responsePending"}
 
-# $1A identification blocks (Z4 GT3 firmware): id -> (length, where it lives)
+# $1A identification blocks: id -> (length, where it lives)
 IDENT_BLOCKS = {0x80: (29, "EEPROM block 10 +0x1A"), 0x8F: (30, "EEPROM block 0 +0"),
-                0x90: (7, "EEPROM block 10 +0x37"), 0x94: (30, "flash 0x76d4 (fixed)"),
+                0x90: (7, "EEPROM block 10 +0x37"), 0x94: (30, "fixed block"),
                 0x99: (4, "EEPROM block 10 +0x16")}
 
-# The fixed 30-byte software-identification block the Z4 GT3 firmware copies verbatim
-# for `$1A 94` (kwp_1a_read_ecu_id 0x27fac, source pointer 0x28dc0 -> flash 0x76d4):
+# The fixed 30-byte software-identification block the module returns for `$1A 94`:
 # length byte, the 12-character software ID string, then a `90 00 0E` tag + 14-byte binary tail.
 SW_IDENT_0x94 = bytes.fromhex("0c414e5f42424630303033382090000e001d07140a1d0003000000820101")
 
 
-# ---- key algorithms (self-contained copies of the kline_ident versions) ----
+# ---- key algorithms (ported from kline_ident) ----
 def _ror16(v, n):
     v &= 0xFFFF
     return ((v >> n) | (v << (16 - n))) & 0xFFFF
@@ -65,7 +61,7 @@ def kt_seedrev(seed, state=4):
     return (_bitrev16(seed) ^ _ror16(seed, state + 1)) & 0xFFFF
 
 
-def kt_afb9e(seed, const):
+def kt_ccp_key(seed, const):        # level 0x7E key transform (CCP)
     s = seed & 0xFFFF
     ns = (~s) & 0xFFFF
     res = 0
@@ -83,7 +79,7 @@ def kt_afb9e(seed, const):
     return (res ^ acc ^ const) & 0xFFFF
 
 
-def kt_afb10(seed, const):
+def kt_coding_key(seed, const):     # level 0x7F key transform (coding write)
     X = _ror16(seed, 3)
     res = 0
     for i in range(8):
@@ -98,17 +94,14 @@ def kt_afb10(seed, const):
 
 
 def load_seedkey(zb="6769162"):
-    """Return {'afb9e': int, 'afb10': int} from a local seedkey.json, or {}.
+    """Return {'ccpKey': int, 'codingKey': int} from a local seedkey.json, or {}.
 
-    Looked up next to this file first, then the private repo's reference/. The
-    file holds the per-image security constants; it is gitignored and never
-    committed. Without it, mock mode still works and real unlock reports a
+    Looked up next to this file. It holds the per-unit security constants;
+    it is gitignored and never committed. Without it, mock mode still works and real unlock reports a
     missing-constant error (you can also type the constants into standalone.html).
     """
-    path = next((p for p in (os.path.join(HERE, "seedkey.json"),
-                             os.path.join(REPO, "reference", "seedkey.json"))
-                 if os.path.exists(p)), None)
-    if not path:
+    path = os.path.join(HERE, "seedkey.json")
+    if not os.path.exists(path):
         return {}
     # tolerate the // comments the file uses
     raw = "\n".join(l for l in open(path) if not l.lstrip().startswith("//"))
@@ -117,24 +110,60 @@ def load_seedkey(zb="6769162"):
     except json.JSONDecodeError:
         return {}
     e = data.get(zb) or data.get(zb[:7]) or {}
-    return {k: int(v, 16) for k, v in e.items() if k in ("afb9e", "afb10")}
+    alias = {"afb9e": "ccpKey", "afb10": "codingKey"}   # old seedkey.json names still accepted
+    out = {}
+    for k, v in e.items():
+        name = alias.get(k, k)
+        if name in ("ccpKey", "codingKey"):
+            out[name] = int(v, 16) if isinstance(v, str) else v
+    return out
 
 
 # ---- transports -------------------------------------------------------------
+def _kwp_frame(tgt, payload):
+    """BMW KWP2000* frame: B8 <tgt> F1 <len> <payload..> <xor>."""
+    f = bytes([0xB8, tgt, 0xF1, len(payload)]) + bytes(payload)
+    x = 0
+    for b in f:
+        x ^= b
+    return f + bytes([x])
+
+
 class RealKwp:
-    """K-line transport via the proven kline_ident helpers."""
+    """K-line transport (KWP2000*: 8E1, DTR low), ported from kline_ident."""
 
     def __init__(self, port, baud=9600, wait=0.3, tgt=TGT):
-        sys.path.insert(0, os.path.expanduser("~/Code/mk60-patcher/tools"))
-        import kline_ident  # noqa
-        self._ki = kline_ident
-        self._ser = kline_ident.open_port(port, "kwp", baud)
+        try:
+            import serial
+        except ImportError:
+            raise RuntimeError("K-line needs pyserial: pip install -r requirements.txt") from None
+        self._ser = serial.Serial(port, baudrate=baud, bytesize=8, parity=serial.PARITY_EVEN,
+                                  stopbits=1, timeout=0.05, write_timeout=1)
+        self._ser.dtr = False
+        self._ser.rts = False
+        time.sleep(0.3)
         self.wait = wait
         self.tgt = tgt
         self.kind = "serial"
 
+    def _send(self, payload):
+        """Send one request and return the raw response with any echo removed."""
+        req = _kwp_frame(self.tgt, payload)
+        self._ser.reset_input_buffer()
+        self._ser.write(req)
+        self._ser.flush()
+        end = time.monotonic() + self.wait
+        data = bytearray()
+        while time.monotonic() < end:
+            chunk = self._ser.read(256)
+            data += chunk
+            if not chunk and len(data) > len(req):
+                break
+        rx = bytes(data)
+        return rx[len(req):] if rx.startswith(req) else rx
+
     def request(self, payload):
-        raw, _ = self._ki.send(self._ser, self.tgt, list(payload), self.wait)
+        raw = self._send(payload)
         body = raw[4:-1] if (len(raw) >= 5 and raw[0] == 0xB8) else raw
         if body and body[0] == 0x7F:
             nrc = body[2] if len(body) > 2 else 0
@@ -149,7 +178,7 @@ class RealKwp:
 
 
 class MockKwp:
-    """Simulates the module from documented behaviour + the bench dumps."""
+    """Simulates the module from its documented behaviour."""
 
     def __init__(self, tgt=TGT):
         self.tgt = tgt
@@ -158,12 +187,13 @@ class MockKwp:
         self.sec_level = 0
         self._seed = 0
         self.routine = {}  # id -> remaining ticks
-        # bench coding: checksum 0xFA, row 0, field 0 (from docs/coding.md)
+        self.ccp_enabled = False  # set by 31 31 01; gates the mock CCP slave
+        # sample coding values for the mock
         self.eeprom = bytearray(0x400)
         self.eeprom[0xFA] = 0xFA
         self.eeprom[0xFB] = 0x00
         self.eeprom[0xFC] = 0x00
-        # bench DTCs (triples: hi, lo, status) from docs/abs-fault.md
+        # sample DTCs for the mock (hi, lo, status)
         self.dtcs = [(0x5E, 0x59, 0x60), (0x5E, 0x1F, 0x60), (0x5E, 0x1E, 0x60)]
 
     def request(self, payload):
@@ -257,33 +287,15 @@ def _mock_live(lid):
 
 # ---- DTC decode -------------------------------------------------------------
 def load_dtc_names():
-    """dtc number -> list of internal fault codes.
-
-    Prefers the bundled dtcmap.json (dtc hex -> [fault hex,...]); falls back to
-    the private repo's analysis/dtc_map.tsv when run from there.
-    """
+    """dtc number -> list of internal fault codes, from the bundled dtcmap.json."""
     jpath = os.path.join(HERE, "dtcmap.json")
-    if os.path.exists(jpath):
-        try:
-            raw = json.load(open(jpath))
-            return {int(k, 16): [int(f, 16) for f in v] for k, v in raw.items()}
-        except (ValueError, json.JSONDecodeError):
-            pass
-    path = os.path.join(REPO, "analysis", "dtc_map.tsv")
-    m = {}
-    if not os.path.exists(path):
-        return m
-    for line in open(path):
-        parts = line.rstrip("\n").split("\t")
-        if len(parts) < 3 or parts[0] == "fault":
-            continue
-        try:
-            fault = int(parts[0], 16)
-            dtc = int(parts[2], 16)
-        except ValueError:
-            continue
-        m.setdefault(dtc, []).append(fault)
-    return m
+    if not os.path.exists(jpath):
+        return {}
+    try:
+        raw = json.load(open(jpath))
+        return {int(k, 16): [int(f, 16) for f in v] for k, v in raw.items()}
+    except (ValueError, json.JSONDecodeError):
+        return {}
 
 
 def load_fault_info():
@@ -313,7 +325,7 @@ def dtc_lamp(infos):
 
 
 def decode_status(b):
-    """A compact decode of the $18 status byte (see docs/dtc.md)."""
+    """A compact decode of the $18 status byte."""
     bits = []
     if b & 0x80:
         bits.append("warning-lamp")
@@ -345,7 +357,7 @@ class Module:
         return {"ok": True}
 
     def unlock(self, level):
-        """level: 0x03 (seedrev), 0x7E (afb9e/CCP), 0x7F (afb10/write)."""
+        """level: 0x03 (seedrev), 0x7E (CCP key), 0x7F (coding key)."""
         seed_sub, key_sub = {0x03: (0x03, 0x04), 0x7E: (0xFB, 0xFC),
                              0x7F: (0xFD, 0xFE)}[level]
         body = self.t.request([0x27, seed_sub])
@@ -357,13 +369,13 @@ class Module:
         if level == 0x03:
             key = kt_seedrev(seed)
         elif level == 0x7E:
-            if "afb9e" not in self.keys:
-                raise KwpError(0x33, "no afb9e constant in seedkey.json")
-            key = kt_afb9e(seed, self.keys["afb9e"])
+            if "ccpKey" not in self.keys:
+                raise KwpError(0x33, "no CCP key (0x7E) in seedkey.json")
+            key = kt_ccp_key(seed, self.keys["ccpKey"])
         else:
-            if "afb10" not in self.keys:
-                raise KwpError(0x33, "no afb10 constant in seedkey.json")
-            key = kt_afb10(seed, self.keys["afb10"])
+            if "codingKey" not in self.keys:
+                raise KwpError(0x33, "no coding key (0x7F) in seedkey.json")
+            key = kt_coding_key(seed, self.keys["codingKey"])
         self.t.request([0x27, key_sub, (key >> 8) & 0xFF, key & 0xFF])
         return {"level": f"0x{level:02X}", "seed": f"0x{seed:04X}", "key": f"0x{key:04X}"}
 
@@ -385,8 +397,8 @@ class Module:
             out["sw_id"] = s.decode("ascii").strip()
             out["tail"] = data[1 + n:].hex()
             if len(data) > 0x15:
-                out["keys"] = {"afb9e": (data[0x11] << 8) | data[0x13],
-                               "afb10": (data[0x14] << 8) | data[0x15]}
+                out["keys"] = {"ccpKey": (data[0x11] << 8) | data[0x13],
+                               "codingKey": (data[0x14] << 8) | data[0x15]}
                 for name, value in out["keys"].items():  # seedkey.json still wins
                     self.keys.setdefault(name, value)
         else:
@@ -401,7 +413,7 @@ class Module:
     def enable_ccp(self):
         self.enter_session(0x87)
         u = self.unlock(0x7E)
-        self.t.request([0x31, 0x31, 0x01])  # diagnostic state 4: CCP served on CAN (bench-proven bytes)
+        self.t.request([0x31, 0x31, 0x01])  # diagnostic state 4: CCP served on CAN
         return u
 
     # faults

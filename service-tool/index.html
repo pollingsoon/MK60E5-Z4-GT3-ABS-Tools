@@ -59,8 +59,8 @@
     <button class="primary" onclick="connect()">Connect</button>
   </div>
   <div class="bar">
-    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
-    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with the CCP key (0x7E), then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with the coding key (0x7F)">Unlock: Enable Coding Write</button>
   </div>
 
   <div class="tabs">
@@ -74,7 +74,7 @@
   <section id="faults" class="active">
     <div class="card">
       <h2>Identification ($1A)</h2>
-      <p>0x94 is the software-identification string fixed in flash at 0x76d4; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
+      <p>0x94 is a fixed software-identification string; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
       <div class="row">
         <button onclick="readIdent(0x94)">Software ID (1A 94)</button>
         <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
@@ -217,14 +217,14 @@ async function readIdent(id, quiet) {
       log(`part number ZB ${j.zb}`, "ok");
     } else if (j.sw_id !== undefined) {
       h += `<tr><td>${j.id}</td><td>${j.source}</td><td class="ok">${j.sw_id}</td><td>${fmt(j.bytes)}</td></tr></table>` +
-           `<div class="note" style="color:var(--mut)">tail (version/date block; the firmware's key routines read the $27 constants from it): ${fmt(j.tail)}</div>`;
+           `<div class="note" style="color:var(--mut)">tail (version/date block; the module's $27 key constants are carried here): ${fmt(j.tail)}</div>`;
       $("#swid").textContent = "SW " + j.sw_id;
       $("#swid").className = "pill on";
       log(`software id ${j.sw_id}`, "ok");
       if (j.keys) {
         const hx4 = v => "0x" + v.toString(16).toUpperCase().padStart(4, "0");
-        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block, used for the unlocks unless seedkey.json overrides them: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)}</div>`;
-        log(`key constants from ident: afb9e ${hx4(j.keys.afb9e)} afb10 ${hx4(j.keys.afb10)}`, "ok");
+        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block, used for the unlocks unless seedkey.json overrides them: CCP key (0x7E) ${hx4(j.keys.ccpKey)}, coding key (0x7F) ${hx4(j.keys.codingKey)}</div>`;
+        log(`key constants from ident: CCP key ${hx4(j.keys.ccpKey)} coding key ${hx4(j.keys.codingKey)}`, "ok");
       }
     } else {
       h += `<tr><td>${j.id}</td><td>${j.source}</td><td>${j.ascii}</td><td>${fmt(j.bytes)}</td></tr></table>`;
@@ -271,7 +271,7 @@ async function readDtcs() {
       : '<span style="color:var(--mut)">no decode</span>';
     h += `<tr><td>${d.dtc}</td><td>${d.status} ${d.status_bits.join(" ")}</td><td class="${lc}">${lt}</td><td>${rows}</td></tr>`;
   });
-  h += `</table><div class="note" style="color:var(--mut)">"depends" = the DTC is shared by several internal faults and only some of them switch ABS off (read fault_flags at RAM 0x101f04 to tell them apart).</div>`;
+  h += `</table><div class="note" style="color:var(--mut)">"depends" = the DTC is shared by several internal faults and only some of them switch ABS off.</div>`;
   if (!j.count) h = `<p class="ok">no stored faults</p>`;
   $("#dtcs").innerHTML = h;
   log(`read ${j.count} DTC(s)`);

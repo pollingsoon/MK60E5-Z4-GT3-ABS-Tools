@@ -54,13 +54,13 @@
   <div class="bar">
     <select id="mode"><option value="serial">Web Serial (K-line)</option><option value="mock">Mock</option></select>
     <select id="baud"><option>9600</option><option>10400</option></select>
-    <label>afb9e</label><input id="k9e" placeholder="0x…" title="level 0x7E constant for your unit (from seedkey.json)" style="width:6em">
-    <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
+    <label>CCP key</label><input id="kccp" placeholder="0x…" title="level 0x7E key (CCP unlock) for your unit; auto-filled from $1A 94" style="width:6em">
+    <label>Coding key</label><input id="kcoding" placeholder="0x…" title="level 0x7F key (coding-write unlock) for your unit; auto-filled from $1A 94" style="width:6em">
     <button class="primary" onclick="connect()">Connect</button>
   </div>
   <div class="bar">
-    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
-    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with the CCP key (0x7E), then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with the coding key (0x7F)">Unlock: Enable Coding Write</button>
   </div>
   <div id="unsupported"></div>
 
@@ -74,7 +74,7 @@
 
   <section id="faults" class="active"><div class="card">
     <h2>Identification ($1A)</h2>
-    <p>0x94 is the software-identification string fixed in flash; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
+    <p>0x94 is a fixed software-identification string; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
     <div class="row"><button onclick="readIdent(0x94)">Software ID (1A 94)</button>
       <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
       <button onclick="readIdent(0x90)">0x90</button><button onclick="readIdent(0x99)">0x99</button></div>
@@ -88,7 +88,7 @@
 
   <section id="coding"><div class="card">
     <h2>Vehicle coding ($23 / $3D)</h2>
-    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (afb10 field); effective next power-on.</p>
+    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (coding key field); effective next power-on.</p>
     <div class="row"><button onclick="readCoding()">Read coding</button></div>
     <div id="coding-out"></div>
     <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
@@ -246,8 +246,7 @@ const DTCMAP = {
   "5E5E": ["90010", "90020"],
   "5E5F": ["C2000"]
 };
-// Fault code -> [meaning, ABS-lamp verdict (yes/no/?), effect]. Generated from the firmware
-// fault-reaction and lamp code (see README "Faults and the ABS lamp"); source of truth: faultinfo.json.
+// Fault code -> [meaning, ABS-lamp verdict (yes/no/?), effect]. See README "Faults and the ABS lamp".
 const FAULTINFO = {
   "10001": ["ECU internal / hardware (bit 0)", "yes", "ABS off, ABS lamp"],
   "10002": ["ECU internal / hardware (bit 1)", "yes", "ABS off, ABS lamp"],
@@ -495,11 +494,11 @@ const FAULTINFO = {
   "1F1000": ["wheel-pressure sensor RR: signal / plausibility bit 12", "no", "sensor dropped by Z4 pressure code"],
   "1F4000": ["wheel-pressure sensor RR: signal / plausibility bit 14", "no", "sensor dropped by Z4 pressure code"]
 };
-// ---- $1A identification blocks (Z4 GT3 firmware, docs/kwp-services.md) ----
+// ---- $1A identification blocks ----
 const IDENT_LEN = { 0x80: 29, 0x8F: 30, 0x90: 7, 0x94: 30, 0x99: 4 };
 const IDENT_SRC = { 0x80: "EEPROM block 10 +0x1A", 0x8F: "EEPROM block 0 +0", 0x90: "EEPROM block 10 +0x37",
-                    0x94: "flash 0x76d4 (fixed)", 0x99: "EEPROM block 10 +0x16" };
-// Fixed 30-byte block the Z4 GT3 firmware returns verbatim for `$1A 94` (copied from flash 0x76d4):
+                    0x94: "fixed block", 0x99: "EEPROM block 10 +0x16" };
+// Fixed 30-byte block the module returns for `$1A 94`:
 // length byte, the 12-character software ID string, then a `90 00 0E` tag + 14-byte binary tail (not parsed by the firmware).
 const SW_IDENT_94 = [0x0c, 0x41, 0x4e, 0x5f, 0x42, 0x42, 0x46, 0x30, 0x30, 0x30, 0x33, 0x38, 0x20,
                      0x90, 0x00, 0x0e, 0x00, 0x1d, 0x07, 0x14, 0x0a, 0x1d, 0x00, 0x03, 0x00, 0x00, 0x00, 0x82, 0x01, 0x01];
@@ -528,7 +527,7 @@ function bitrev16(v) {
 
 const ktSeedrev = s => (bitrev16(s) ^ ror16(s, 5)) & 0xFFFF;
 
-function ktAfb9e(seed, c) {
+function ktCcpKey(seed, c) {        // level 0x7E key transform (CCP unlock)
   const s = seed & 0xFFFF, ns = (~s) & 0xFFFF;
   let res = 0;
   for (let i = 0; i < 4; i++) {
@@ -547,7 +546,7 @@ function ktAfb9e(seed, c) {
   return (res ^ acc ^ c) & 0xFFFF;
 }
 
-function ktAfb10(seed, c) {
+function ktCodingKey(seed, c) {     // level 0x7F key transform (coding-write unlock)
   const X = ror16(seed, 3);
   let res = 0;
   for (let i = 0; i < 8; i++) {
@@ -749,11 +748,11 @@ class Module {
     if (l === 0x03) {
       key = ktSeedrev(seed);
     } else if (l === 0x7E) {
-      if (!this.keys.afb9e) throw new Error("no afb9e constant: type it in the toolbar field and retry");
-      key = ktAfb9e(seed, this.keys.afb9e);
+      if (!this.keys.ccpKey) throw new Error("no CCP key (0x7E): type it in the toolbar field and retry");
+      key = ktCcpKey(seed, this.keys.ccpKey);
     } else {
-      if (!this.keys.afb10) throw new Error("no afb10 constant: type it in the toolbar field and retry");
-      key = ktAfb10(seed, this.keys.afb10);
+      if (!this.keys.codingKey) throw new Error("no coding key (0x7F): type it in the toolbar field and retry");
+      key = ktCodingKey(seed, this.keys.codingKey);
     }
     try {
       await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
@@ -782,8 +781,8 @@ class Module {
       out.tail = d.slice(1 + n);
       if (d.length > 0x15) {
         out.keys = {
-          afb9e: (d[0x11] << 8) | d[0x13],
-          afb10: (d[0x14] << 8) | d[0x15],
+          ccpKey: (d[0x11] << 8) | d[0x13],
+          codingKey: (d[0x14] << 8) | d[0x15],
         };
       }
     } else {
@@ -801,7 +800,7 @@ class Module {
   async enableCcp() {
     await this.session(0x87);
     const u = await this.unlock(0x7E);
-    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN (bench-proven bytes)
+    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN
     return u;
   }
 
@@ -899,8 +898,8 @@ if (!("serial" in navigator)) {
 // can be typed or corrected after connecting.
 function readKeys() {
   const keys = {};
-  if ($("#k9e").value.trim()) keys.afb9e = hx($("#k9e").value.trim());
-  if ($("#k10").value.trim()) keys.afb10 = hx($("#k10").value.trim());
+  if ($("#kccp").value.trim()) keys.ccpKey = hx($("#kccp").value.trim());
+  if ($("#kcoding").value.trim()) keys.codingKey = hx($("#kcoding").value.trim());
   return keys;
 }
 
@@ -966,7 +965,7 @@ async function readDtcs() {
         : '<span class="mut">no decode table for this target</span>';
       h += `<tr><td>0x${d.dtc}</td><td>0x${d.status.toString(16)} ${st}</td><td class="${lc}">${lt}</td><td>${rows}</td></tr>`;
     });
-    h += `</table><div class="note" style="color:var(--mut)">status 0x40 = fault currently present; "depends" = the DTC is shared by several internal faults and only some of them switch ABS off (read fault_flags at RAM 0x101f04 to tell them apart).</div>`;
+    h += `</table><div class="note" style="color:var(--mut)">status 0x40 = fault currently present; "depends" = the DTC is shared by several internal faults and only some of them switch ABS off.</div>`;
     if (!j.count) h = `<p class="ok">no stored faults</p>`;
     $("#dtcs").innerHTML = h;
     log(`read ${j.count} DTC(s)`);
@@ -987,17 +986,17 @@ async function readIdent(id, quiet) {
       log(`part number ZB ${j.zb}`, "ok");
     } else if (j.swId !== undefined) {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td class="ok">${j.swId}</td><td>${fmt(j.bytes)}</td></tr></table>` +
-           `<div class="note" style="color:var(--mut)">tail (version/date block; the firmware's key routines read the $27 constants from it): ${fmt(j.tail)}</div>`;
+           `<div class="note" style="color:var(--mut)">tail (version/date block; the module's $27 key constants are carried here): ${fmt(j.tail)}</div>`;
       $("#swid").textContent = "SW " + j.swId;
       $("#swid").className = "pill on";
       log(`software id ${j.swId}`, "ok");
       if (j.keys) {
         const hx4 = v => "0x" + v.toString(16).toUpperCase().padStart(4, "0");
         let filled = [];
-        if (!$("#k9e").value.trim()) { $("#k9e").value = hx4(j.keys.afb9e); filled.push("afb9e"); }
-        if (!$("#k10").value.trim()) { $("#k10").value = hx4(j.keys.afb10); filled.push("afb10"); }
-        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)}${filled.length ? " (filled " + filled.join(" + ") + ")" : ""}</div>`;
-        if (filled.length) log(`key constants from ident: afb9e ${hx4(j.keys.afb9e)} afb10 ${hx4(j.keys.afb10)}`, "ok");
+        if (!$("#kccp").value.trim()) { $("#kccp").value = hx4(j.keys.ccpKey); filled.push("CCP key"); }
+        if (!$("#kcoding").value.trim()) { $("#kcoding").value = hx4(j.keys.codingKey); filled.push("coding key"); }
+        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block: CCP key (0x7E) ${hx4(j.keys.ccpKey)}, coding key (0x7F) ${hx4(j.keys.codingKey)}${filled.length ? " (filled " + filled.join(" + ") + ")" : ""}</div>`;
+        if (filled.length) log(`key constants from ident: CCP key ${hx4(j.keys.ccpKey)} coding key ${hx4(j.keys.codingKey)}`, "ok");
       }
     } else {
       h += `<tr><td>${hid}</td><td>${j.source}</td><td>${j.ascii}</td><td>${fmt(j.bytes)}</td></tr></table>`;

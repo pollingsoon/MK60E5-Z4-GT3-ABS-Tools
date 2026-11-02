@@ -19,26 +19,25 @@ python3 -m http.server 8000     # then open http://localhost:8000/service-tool/s
 or host it on any https page (this repo's GitHub Pages works). It also carries
 a built-in mock, so it runs in any browser with no hardware for a dry run.
 
-**Python bridge - `server.py` + `index.html`.** Use this to script it or add a
-CAN/CCP transport. Mock mode needs only Python 3; real mode needs `pyserial`
-and a K+DCAN cable:
+**Python bridge - `server.py` + `index.html`.** Use this to script it. Mock mode
+needs only Python 3; real mode needs `pyserial` and a K+DCAN cable:
 
 ```sh
 python3 service-tool/server.py                       # mock, http://127.0.0.1:8730
 python3 service-tool/server.py --port /dev/cu.usbserial-XXXX --baud 9600
 ```
 
-The serial transport reuses the helpers in `~/Code/mk60-patcher/tools` when
-present; without them, mock mode still works.
+Real mode's dependencies are in `requirements.txt` (`pip install -r
+service-tool/requirements.txt`).
 
 ## Features → KWP services
 
 | Feature | Service(s) | Preconditions |
 |---|---|---|
 | Part number (ZB) | `$1A 80` -> `5A 80 00 00 <ZB: 4 bytes packed BCD> ...` (29 bytes; indices and dates follow) | none; read on connect |
-| Software ID / identification | `$1A 94` -> `5A 94` + 30 bytes from flash `0x76d4` (software ID string + binary tail); `$1A 80/8F/90/99` EEPROM ident records | none; read on connect |
+| Software ID / identification | `$1A 94` -> `5A 94` + 30 bytes (software ID string + binary tail); `$1A 80/8F/90/99` EEPROM ident records | none; read on connect |
 | Read faults | `$18 02 FF FF` -> `58 count [hi lo status]...` | none |
-| Clear faults | `$14 FF 00` | none (coding DTC returns next power-on) |
+| Clear faults | `$14 FF FF` | none (coding DTC returns next power-on) |
 | Read coding | `$23 00 00 FA 03 03` (EEPROM 0x0FA-0x0FC) | none |
 | Write coding | `$3D 00 00 FB 03 01 DD` x3 (row, field1, checksum) | `$10 87` + security `0x7F` |
 | Valve calibration | `$31 0x28` inlet, `$31 0x29` USV, `$33` status | session; actuates valves |
@@ -51,7 +50,7 @@ present; without them, mock mode still works.
 A `$18` DTC is a 2-byte number that several internal fault bits can share, so
 the tool lists every candidate fault behind each DTC with its meaning. The
 **ABS lamp** column says whether that fault switches ABS off, which is what
-drives the ABS warning lamp output (pin 44, lamp channel 2 in the firmware):
+drives the ABS warning lamp output (pin 44):
 
 - **yes** - the fault sets the ABS-off reaction (wheel-speed sensor faults,
   ECU / valve-relay / valve-driver faults, master pressure invalid `0x150004`,
@@ -64,30 +63,27 @@ drives the ABS warning lamp output (pin 44, lamp channel 2 in the firmware):
   stays off.
 - **depends** - the DTC is shared by faults with different verdicts.
   `0x5E1F` is the common case: `0xB0002` lights the lamp, `0x120008` /
-  `0x120080` do not. To tell them apart read the fault word for that group at
-  RAM `0x101f04 + 2 x group` (e.g. group `0x12` at `0x101f28`).
-- **not traced** - groups whose reaction was not followed through the code.
+  `0x120080` do not.
+- **not traced** - groups whose lamp behaviour isn't characterised here.
 
-The verdicts come from the fault-reaction functions (`0x2ad04`, `0x2b624`,
-`0x2be7c`), the ABS status that feeds the lamp request (`0x99398`) and the lamp
-request table at `0x7694`; the lamp also lights during the power-on self-test.
+The lamp also lights during the power-on self-test.
 Status `0x40` in the status byte means the fault is currently present, not just
 stored. The TCS/DSC indicator (lamp channel 3) is only sent on CAN (`0x1A0`)
 and is not covered by the column.
 
 ## Security key
 
-Writing coding and unlocking levels `0x7E`/`0x7F` need the per-image `$27`
-constants for your unit. They are **not** stored in this repo. In
-`standalone.html` you type them into the two toolbar fields; for `server.py`
-put a `seedkey.json` next to the scripts (it is gitignored) with your own
-values:
+Writing coding and unlocking levels `0x7E`/`0x7F` need the per-unit `$27`
+constants for your unit. They are **not** stored in this repo; each page takes
+them from the module's `$1A 94` block on connect. To override them, type them
+into the two toolbar fields in `standalone.html`, or for `server.py` put a
+`seedkey.json` next to the scripts (it is gitignored) with your own values:
 
 ```json
-{ "6769162": { "afb9e": "0x....", "afb10": "0x...." } }
+{ "6769162": { "ccpKey": "0x....", "codingKey": "0x...." } }  (old names afb9e/afb10 still accepted)
 ```
 
-Mock mode needs no key. The two toolbar buttons, **Unlock: Enable CCP** (`10 87`, `27 FB/FC` with afb9e, `31 31 01`) and **Unlock: Enable Coding Write** (`10 87`, `27 FD/FE` with afb10), run their whole sequence in order; coding writes and calibration routines open the session they need themselves. The constants are read from the fields at the moment you click, so they can be typed after connecting.
+Mock mode needs no key. The two toolbar buttons, **Unlock: Enable CCP** (`10 87`, `27 FB/FC` with the CCP key (0x7E), `31 31 01`) and **Unlock: Enable Coding Write** (`10 87`, `27 FD/FE` with the coding key (0x7F)), run their whole sequence in order; coding writes and calibration routines open the session they need themselves. The constants are read from the fields at the moment you click, so they can be typed after connecting.
 
 ## Safety
 
@@ -101,6 +97,8 @@ checksum is recomputed for you.
 - `standalone.html` - browser-only tool (Web Serial + built-in mock), one file.
 - `server.py` - loopback HTTP + JSON bridge for the Python path.
 - `kwp.py` - the KWP service layer (serial + mock transports, key algorithms).
+- `test_pcan_usb.js` - tests for the WebUSB PCAN-USB driver in `assets/pcan_usb.js`; run `node service-tool/test_pcan_usb.js`.
+- `requirements.txt` - Python dependencies for real-hardware mode; mock mode needs none.
 - `index.html` - UI served by `server.py`.
 - `dtcmap.json` - DTC -> internal-fault decode table.
 - `faultinfo.json` - internal fault -> meaning, ABS-lamp verdict and effect (source of truth for the `FAULTINFO` table embedded in `standalone.html` and `assets/kwp.js`).

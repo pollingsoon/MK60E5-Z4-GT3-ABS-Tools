@@ -18,16 +18,19 @@
 <main>
   <div class="bar">
     <label>Target</label>
-    <select id="target"><option value="z4">Z4 GT3 (K-line)</option><option value="m3">M3 (D-CAN)</option></select>
-    <select id="mode"><option value="serial">Web Serial</option><option value="mock">Mock</option></select>
+    <select id="target"><option value="z4">Z4 GT3 (K-line)</option><option value="m3">M3 (CAN)</option></select>
+    <select id="mode"><option value="serial">Web Serial</option><option value="pcan" disabled>PCAN-USB (CAN)</option><option value="mock">Mock</option></select>
     <select id="baud"><option>9600</option><option>10400</option><option>115200</option></select>
-    <label>afb9e</label><input id="k9e" placeholder="0x…" title="level 0x7E constant for your unit (from seedkey.json)" style="width:6em">
-    <label>afb10</label><input id="k10" placeholder="0x…" title="level 0x7F constant for your unit (from seedkey.json)" style="width:6em">
+    <label>CCP key</label><input id="kccp" placeholder="0x…" title="level 0x7E key (CCP unlock) for your unit; auto-filled from $1A 94" style="width:6em">
+    <label>Coding key</label><input id="kcoding" placeholder="0x…" title="level 0x7F key (coding-write unlock) for your unit; auto-filled from $1A 94" style="width:6em">
+    <span class="m3only" style="display:none"><label>L5 key</label><input id="l5key" placeholder="M3 32 hex" title="M3 level-5 key (16 bytes); not stored in the repo" style="width:9em"></span>
+    <span class="m3only" style="display:none"><label>UID</label><input id="uid" value="273c" title="level-5 user id (ASCII, or 0x-prefixed hex)" style="width:3.5em"></span>
+    <span class="m3only" style="display:none"><label>W564</label><input id="w564" placeholder="auto" title="level-5 W564 (4 bytes hex); blank reads it from $1A 89" style="width:4.5em"></span>
     <button class="primary" onclick="connect()">Connect</button>
   </div>
   <div class="bar">
-    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with afb9e, then 31 31 01">Unlock: Enable CCP</button>
-    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with afb10">Unlock: Enable Coding Write</button>
+    <button onclick="enableCcp()" title="10 87, then $27 FB/FC with the CCP key (0x7E), then 31 31 01">Unlock: Enable CCP</button>
+    <button onclick="enableCodingWrite()" title="10 87, then $27 FD/FE with the coding key (0x7F)">Unlock: Enable Coding Write</button>
   </div>
   <div id="unsupported"></div>
 
@@ -93,7 +96,7 @@
 
   <section id="faults"><div class="card">
     <h2>Identification ($1A)</h2>
-    <p>0x94 is the software-identification string fixed in flash; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
+    <p>0x94 is a fixed software-identification string; 0x80 holds the BMW part number (ZB, packed BCD); 0x8F / 0x90 / 0x99 are the other EEPROM ident records. ZB and software ID are read on connect.</p>
     <div class="row"><button onclick="readIdent(0x94)">Software ID (1A 94)</button>
       <button onclick="readIdent(0x80)">0x80</button><button onclick="readIdent(0x8F)">0x8F</button>
       <button onclick="readIdent(0x90)">0x90</button><button onclick="readIdent(0x99)">0x99</button></div>
@@ -107,7 +110,7 @@
 
   <section id="coding"><div class="card">
     <h2>Vehicle coding ($23 / $3D)</h2>
-    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (afb10 field); effective next power-on.</p>
+    <p>EEPROM 0x0FA–0x0FC. The adjustment session and the 0x7F unlock are done for you (coding key field); effective next power-on.</p>
     <div class="row"><button onclick="readCoding()">Read coding</button></div>
     <div id="coding-out"></div>
     <div class="row"><label>row</label><input id="row" value="0" style="width:4em">
@@ -142,12 +145,21 @@
         <label>len</label><input id="mlen" value="3" style="width:4em">
         <label>type</label><input id="mtype" value="3" style="width:3.5em">
         <button onclick="readMem()">Read</button></div>
-      <div id="mem-out"></div></div></section>
+      <div id="mem-out"></div></div>
+    <div class="card"><h2>CAN adapter test (PCAN-USB, WebUSB)</h2>
+      <p>Opens a classic PEAK PCAN-USB directly from Chrome or Edge and lists the traffic on PT-CAN. Nothing is transmitted. Close PCAN-View and any Python tool using the adapter first.</p>
+      <div class="row"><label>bitrate</label><select id="pcan-rate"><option value="500000">500 kbit/s</option><option value="250000">250 kbit/s</option><option value="125000">125 kbit/s</option></select>
+        <label><input id="pcan-silent" type="checkbox" checked style="width:auto"> listen-only</label>
+        <button id="pcan-go" onclick="pcanStart()">Open adapter</button>
+        <button id="pcan-stop" onclick="pcanStop()" disabled>Close</button></div>
+      <div class="note" style="color:var(--mut)">Listen-only doesn't even ACK, so if the module is the only other node on the bus it repeats its first frames and may report errors. Untick it to ACK; frames are still never sent.</div>
+      <div id="pcan-out"></div></div></section>
 
   <div class="card"><h2>Transaction log</h2><div id="log"></div></div>
 </main>
 
 <script src="assets/kwp.js"></script>
+<script src="assets/pcan_usb.js"></script>
 <script src="assets/generator.js"></script>
 <script src="assets/app.js"></script>
 </body>

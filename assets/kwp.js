@@ -115,8 +115,7 @@ const DTCMAP = {
   "5E5E": ["90010", "90020"],
   "5E5F": ["C2000"]
 };
-// Fault code -> [meaning, ABS-lamp verdict (yes/no/?), effect]. Generated from the firmware
-// fault-reaction and lamp code (see README "Faults and the ABS lamp"); source of truth: faultinfo.json.
+// Fault code -> [meaning, ABS-lamp verdict (yes/no/?), effect]. See README "Faults and the ABS lamp".
 const FAULTINFO = {
   "10001": ["ECU internal / hardware (bit 0)", "yes", "ABS off, ABS lamp"],
   "10002": ["ECU internal / hardware (bit 1)", "yes", "ABS off, ABS lamp"],
@@ -364,12 +363,10 @@ const FAULTINFO = {
   "1F1000": ["wheel-pressure sensor RR: signal / plausibility bit 12", "no", "sensor dropped by Z4 pressure code"],
   "1F4000": ["wheel-pressure sensor RR: signal / plausibility bit 14", "no", "sensor dropped by Z4 pressure code"]
 };
-// ---- $1A identification blocks (Z4 GT3 firmware, docs/kwp-services.md) ----
+// ---- $1A identification blocks ----
 const IDENT_LEN = { 0x80: 29, 0x8F: 30, 0x90: 7, 0x94: 30, 0x99: 4 };
 const IDENT_SRC = { 0x80: "EEPROM block 10 +0x1A", 0x8F: "EEPROM block 0 +0", 0x90: "EEPROM block 10 +0x37",
-                    0x94: "flash 0x76d4 (fixed)", 0x99: "EEPROM block 10 +0x16" };
-// Fixed 30-byte block the Z4 GT3 firmware returns verbatim for `$1A 94` (copied from flash 0x76d4):
-// length byte, the 12-character software ID string, then a `90 00 0E` tag + 14-byte binary tail (not parsed by the firmware).
+                    0x94: "fixed block", 0x99: "EEPROM block 10 +0x16" };
 const SW_IDENT_94 = [0x0c, 0x41, 0x4e, 0x5f, 0x42, 0x42, 0x46, 0x30, 0x30, 0x30, 0x33, 0x38, 0x20,
                      0x90, 0x00, 0x0e, 0x00, 0x1d, 0x07, 0x14, 0x0a, 0x1d, 0x00, 0x03, 0x00, 0x00, 0x00, 0x82, 0x01, 0x01];
 
@@ -397,7 +394,7 @@ function bitrev16(v) {
 
 const ktSeedrev = s => (bitrev16(s) ^ ror16(s, 5)) & 0xFFFF;
 
-function ktAfb9e(seed, c) {
+function ktCcpKey(seed, c) {
   const s = seed & 0xFFFF, ns = (~s) & 0xFFFF;
   let res = 0;
   for (let i = 0; i < 4; i++) {
@@ -416,7 +413,7 @@ function ktAfb9e(seed, c) {
   return (res ^ acc ^ c) & 0xFFFF;
 }
 
-function ktAfb10(seed, c) {
+function ktCodingKey(seed, c) {
   const X = ror16(seed, 3);
   let res = 0;
   for (let i = 0; i < 8; i++) {
@@ -432,10 +429,50 @@ function ktAfb10(seed, c) {
   return (res ^ c) & 0xFFFF;
 }
 
+// MD5, for the M3 level-5 Authentisierung (Web Crypto has no MD5). Input and output
+// are byte arrays. Verified against the RFC vectors and kwp.py in test_kwp.js.
+function md5(input) {
+  const s = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+             5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+             4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+             6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21];
+  const K = new Uint32Array(64);
+  for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 2 ** 32) >>> 0;
+  let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+  const msg = Array.from(input), bits = msg.length * 8;
+  msg.push(0x80);
+  while (msg.length % 64 !== 56) msg.push(0);
+  for (let i = 0; i < 4; i++) msg.push((bits >>> (8 * i)) & 0xff);
+  for (let i = 0; i < 4; i++) msg.push((Math.floor(bits / 2 ** 32) >>> (8 * i)) & 0xff);
+  const rotl = (x, c) => (x << c) | (x >>> (32 - c));
+  for (let off = 0; off < msg.length; off += 64) {
+    const M = new Uint32Array(16);
+    for (let i = 0; i < 16; i++) {
+      M[i] = (msg[off + i * 4]) | (msg[off + i * 4 + 1] << 8) |
+             (msg[off + i * 4 + 2] << 16) | (msg[off + i * 4 + 3] << 24);
+    }
+    let A = a0, B = b0, C = c0, D = d0;
+    for (let i = 0; i < 64; i++) {
+      let F, g;
+      if (i < 16) { F = (B & C) | (~B & D); g = i; }
+      else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+      else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; }
+      else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+      F = (F + A + K[i] + M[g]) >>> 0;
+      A = D; D = C; C = B;
+      B = (B + rotl(F, s[i])) >>> 0;
+    }
+    a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+  }
+  const out = new Uint8Array(16);
+  [a0, b0, c0, d0].forEach((h, j) => { for (let i = 0; i < 4; i++) out[j * 4 + i] = (h >>> (8 * i)) & 0xff; });
+  return out;
+}
+
 // ---- Web Serial transport ----
 class WebSerialKwp {
   // proto "kwp"  = K-line KWP2000* (8E1, DTR low, B8 header, XOR checksum)  -> Z4 GT3
-  // proto "fast" = BMW-FAST / D-CAN (8N1, DTR high, 0x80|len header, sum)   -> M3 (to confirm on the bench)
+  // proto "fast" = BMW-FAST / D-CAN (8N1, DTR high, 0x80|len header, sum)   -> M3 (to confirm on hardware)
   constructor(baud, proto) {
     this.baud = baud;
     this.proto = proto || "kwp";
@@ -568,6 +605,7 @@ class MockKwp {
     if (s === 0x1A) {                     // read ECU identification
       const id = p[1];
       if (id === 0x94) return [0x5A, 0x94, ...SW_IDENT_94];
+      if (id === 0x89) return [0x5A, 0x89, 0x00, 0xB4, 0x00, 0x00];   // level-5 W564 = last 4 bytes
       const n = IDENT_LEN[id];
       if (n === undefined) throw new KwpError(0x12);
       const blk = new Array(n).fill(0);            // EEPROM-backed blocks: content not on file
@@ -593,7 +631,9 @@ class MockKwp {
       this.ee[(p[2] << 8) | p[3]] = p[6];
       return [0x7D, 0, p[2], p[3], 0x03];
     }
-    if (s === 0x31) {                     // start routine
+    if (s === 0x31) {                     // start routine / level-5 auth
+      if (p[1] === 0x07) return [0x71, 0x07, 0, 1, 2, 3, 4, 5, 6, 7];   // auth: random (zufall)
+      if (p[1] === 0x08) return [0x71, 0x08, 0x01];                     // auth: accepted (mock grants)
       if (this.session === 0x81) throw new KwpError(0x22);
       this.rout[p[1]] = 4;
       return [0x71, p[1]];
@@ -624,10 +664,34 @@ function mockLive(lid) {
 
 // ---- Module (ported) ----
 class Module {
-  constructor(t, keys, target) {
+  constructor(t, keys, target, auth) {
     this.t = t;
     this.keys = keys;
     this.target = target || "z4";   // "z4" decodes DTCs via DTCMAP; "m3" shows raw codes
+    this.auth = auth || {};          // M3 level-5 material: { uid, w564, key16 } (byte arrays)
+  }
+
+  // M3 level-5 Authentisierung (KWP 0x31 07 / 0x31 08). uid defaults to WinKFP's "273c";
+  // w564 (null) is read per-unit from $1A 89; key16 is the 16-byte level-5 key (not stored
+  // in the repo). Must run before the 0x7E unlock that gates CCP on the M3.
+  async auth5(uid, w564, key16) {
+    if (!key16 || key16.length !== 16) throw new Error("M3 CCP needs the 16-byte level-5 key: type it in the L5 field");
+    uid = (uid && uid.length) ? uid.slice(0, 4) : [0x32, 0x37, 0x33, 0x63];   // "273c"
+    await this.session(0x81).catch(() => {});   // tolerate a refusal from a stuck session
+    await this.session(0x87).catch(() => {});
+    if (!w564 || !w564.length) {
+      const r = await this.t.request([0x1A, 0x89]);
+      const d = (r.length >= 2 && r[0] === 0x5A) ? r.slice(2) : r;
+      w564 = Array.from(d.slice(-4));
+    }
+    const rnd = await this.t.request([0x31, 0x07, 0x03, ...uid]);   // -> 71 07 <zufall:8>
+    const zufall = Array.from(rnd.slice(2, 10));
+    if (zufall.length !== 8) throw new Error("level-5 auth: no random from the module (31 07)");
+    const data16 = [...uid.slice(0, 4), ...w564.slice(0, 4), ...zufall];   // uid || w564 || zufall
+    const resp = md5([...key16, ...data16, ...key16]);                     // MD5(key || data16 || key)
+    const rr = await this.t.request([0x31, 0x08, ...resp]);                // -> 71 08 01
+    if (!(rr[0] === 0x71 && rr[2] === 0x01)) throw new Error("level-5 auth rejected by the module (wrong key or W564)");
+    return { zufall };
   }
 
   async session(l) {
@@ -646,11 +710,11 @@ class Module {
     if (l === 0x03) {
       key = ktSeedrev(seed);
     } else if (l === 0x7E) {
-      if (!this.keys.afb9e) throw new Error("no afb9e constant: type it in the toolbar field and retry");
-      key = ktAfb9e(seed, this.keys.afb9e);
+      if (!this.keys.ccpKey) throw new Error("no CCP key (0x7E): type it in the toolbar field and retry");
+      key = ktCcpKey(seed, this.keys.ccpKey);
     } else {
-      if (!this.keys.afb10) throw new Error("no afb10 constant: type it in the toolbar field and retry");
-      key = ktAfb10(seed, this.keys.afb10);
+      if (!this.keys.codingKey) throw new Error("no coding key (0x7F): type it in the toolbar field and retry");
+      key = ktCodingKey(seed, this.keys.codingKey);
     }
     try {
       await this.t.request([0x27, keySub, (key >> 8) & 0xFF, key & 0xFF]);
@@ -664,7 +728,7 @@ class Module {
   async readIdent(id) {
     const b = await this.t.request([0x1A, id]);
     const d = Array.from((b.length >= 2 && b[0] === 0x5A) ? b.slice(2) : b);
-    const out = { id, bytes: d, source: IDENT_SRC[id] || "?" };
+    const out = { id, bytes: d, source: (this.target === "z4" && IDENT_SRC[id]) || "?" };   // Z4 firmware locations
     if (id === 0x80 && d.length >= 6) {
       // BMW part number (ZB): packed BCD in bytes 2..5 of the 0x80 block (5A 80 00 00 <ZB:4> ...)
       const bcd = d.slice(2, 6);
@@ -679,8 +743,8 @@ class Module {
       out.tail = d.slice(1 + n);
       if (d.length > 0x15) {
         out.keys = {
-          afb9e: (d[0x11] << 8) | d[0x13],
-          afb10: (d[0x14] << 8) | d[0x15],
+          ccpKey: (d[0x11] << 8) | d[0x13],
+          codingKey: (d[0x14] << 8) | d[0x15],
         };
       }
     } else {
@@ -696,9 +760,17 @@ class Module {
   }
 
   async enableCcp() {
+    // M3: CCP (0x797/0x798) is gated behind level 0x7E, which in turn needs the
+    // level-5 Authentisierung first. Z4: just the 0x87 session.
+    if (this.target === "m3") {
+      await this.auth5(this.auth.uid, this.auth.w564, this.auth.key16);
+      const u = await this.unlock(0x7E);
+      await this.t.request([0x31, 0x31, 0x01]);
+      return { ...u, auth5: true };
+    }
     await this.session(0x87);
     const u = await this.unlock(0x7E);
-    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN (bench-proven bytes)
+    await this.t.request([0x31, 0x31, 0x01]);   // diagnostic state 4: CCP is served on CAN
     return u;
   }
 
@@ -769,3 +841,6 @@ class Module {
     return (b.length >= 2 && b[0] === 0x61) ? b.slice(2) : b;
   }
 }
+
+
+if (typeof module !== "undefined") module.exports = { md5, Module, MockKwp, ktCcpKey, ktCodingKey, ktSeedrev };

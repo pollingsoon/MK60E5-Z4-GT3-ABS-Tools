@@ -10,7 +10,8 @@ hardware; pass --port to talk to a real K+DCAN cable.
 
 Only loopback is bound. This tool writes coding and runs valve/sensor
 routines; those are gated behind explicit confirmations in the UI and the
-module's own session/security/stationary checks.
+module's own session/security/stationary checks. The Dump tab reads flash and
+RAM over CCP on a CAN adapter through python-can (see ccp.py).
 """
 import argparse
 import json
@@ -18,11 +19,13 @@ import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import ccp
 import kwp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _lock = threading.Lock()
 _state = {"module": None, "cfg": {}}
+_dump = {"thread": None, "cancel": None, "status": {"state": "idle"}}
 
 
 def _connect(cfg):
@@ -44,9 +47,64 @@ def _hexint(v):
     return int(v, 16) if isinstance(v, str) else int(v)
 
 
+def _dump_start(mod, body):
+    """Start a background CCP dump into dumps/. It runs on CAN, beside the K-line session."""
+    if _dump["thread"] is not None and _dump["thread"].is_alive():
+        raise RuntimeError("a dump is already running")
+    start, size = _hexint(body["start"]), _hexint(body["size"])
+    interface = body.get("interface", "pcan")
+    mock = interface == "mock"
+    name = f"{'mock_' if mock else ''}dump_0x{start:06x}_0x{start + size - 1:06x}.bin"
+    path = os.path.join(HERE, "dumps", name)
+
+    def enable():
+        with _lock:
+            try:
+                mod.enable_ccp()
+            except kwp.KwpError as e:
+                if e.nrc != 0x22:  # 0x22 = already enabled, CONNECT gets retried either way
+                    raise
+
+    if mock:
+        bus, message = ccp.MockCcpBus(enabled=lambda: getattr(mod.t, "ccp_enabled", True)), ccp.Frame
+    else:
+        bus, message = ccp.open_bus(interface, body.get("channel", "PCAN_USBBUS1"))
+    cancel = threading.Event()
+    status = {"state": "running", "start": start, "size": size, "next": 0, "rate": 0, "path": path}
+
+    def progress(offset, rate):
+        status.update(next=offset, rate=round(rate))
+
+    def run():
+        try:
+            status.update(ccp.dump_region(ccp.CcpClient(bus, message), start, size, path,
+                                          fresh=bool(body.get("fresh")),
+                                          # a mock K-line can't turn CCP on in a real module
+                                          enable=enable if mock or mod.t.kind != "mock" else None,
+                                          progress=progress, cancel=cancel))
+        except Exception as e:  # noqa - surfaced through dump_status
+            status.update(state="error", detail=str(e))  # not "error": that fails the API call
+        finally:
+            bus.shutdown()
+
+    _dump.update(status=status, cancel=cancel, thread=threading.Thread(target=run, daemon=True))
+    _dump["thread"].start()
+    return status
+
+
+def _dump_cancel():
+    if _dump["cancel"] is not None:
+        _dump["cancel"].set()
+    return _dump["status"]
+
+
 def _dispatch(action, body):
     if action == "connect":
         return _connect(body)
+    if action == "dump_status":
+        return _dump["status"]
+    if action == "dump_cancel":
+        return _dump_cancel()
 
     mod = _state.get("module")
     if mod is None:
@@ -68,6 +126,7 @@ def _dispatch(action, body):
         "read_memory":    lambda: mod.read_memory(_hexint(body["addr"]), int(body["length"]),
                                                   int(body.get("mtype", 3))),
         "read_live":      lambda: mod.read_live(_hexint(body["lid"])),
+        "dump_start":     lambda: _dump_start(mod, body),
     }
 
     fn = handlers.get(action)
