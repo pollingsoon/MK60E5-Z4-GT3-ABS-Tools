@@ -196,6 +196,8 @@ class MockKwp:
                 out += bytes([hi, lo, st])
             return bytes(out)
         if s == 0x14:  # clear
+            if not (p[1] == 0xFF and p[2] in (0xFF, 0xFC)):
+                raise KwpError(0x12, NRC[0x12])
             self.dtcs = []
             return bytes([0x54])
         if s == 0x23:  # read memory by address: 23 00 HH LL TT NN
@@ -212,6 +214,13 @@ class MockKwp:
             rid = p[1]
             if self.session == 0x81:
                 raise KwpError(0x22, NRC[0x22])
+            if rid == 0x31:  # CCP enable: needs 0x7E, re-enabling answers conditionsNotCorrect
+                if self.sec_level != 0x7E:
+                    raise KwpError(0x33, NRC[0x33])
+                if self.ccp_enabled and p[2] == 0x01:
+                    raise KwpError(0x22, NRC[0x22])
+                self.ccp_enabled = p[2] == 0x01
+                return bytes([0x71, rid, p[2]])
             self.routine[rid] = 5
             return bytes([0x71, rid])
         if s == 0x33:  # routine status
@@ -378,6 +387,8 @@ class Module:
             if len(data) > 0x15:
                 out["keys"] = {"afb9e": (data[0x11] << 8) | data[0x13],
                                "afb10": (data[0x14] << 8) | data[0x15]}
+                for name, value in out["keys"].items():  # seedkey.json still wins
+                    self.keys.setdefault(name, value)
         else:
             out["ascii"] = "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in data)
         return out
@@ -417,7 +428,7 @@ class Module:
         return {"count": count, "dtcs": out}
 
     def clear_dtcs(self):
-        self.t.request([0x14, 0xFF, 0x00])
+        self.t.request([0x14, 0xFF, 0xFF])
         return {"cleared": True}
 
     # coding

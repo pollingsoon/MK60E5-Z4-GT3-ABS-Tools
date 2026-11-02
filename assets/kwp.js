@@ -580,6 +580,7 @@ class MockKwp {
       return o;
     }
     if (s === 0x14) {                     // clear DTCs
+      if (!(p[1] === 0xFF && (p[2] === 0xFF || p[2] === 0xFC))) throw new KwpError(0x12);
       this.dtcs = [];
       return [0x54];
     }
@@ -718,7 +719,7 @@ class Module {
   }
 
   async clearDtcs() {
-    await this.t.request([0x14, 0xFF, 0x00]);
+    await this.t.request([0x14, 0xFF, 0xFF]);
   }
 
   async readCoding() {

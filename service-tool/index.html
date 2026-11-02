@@ -223,7 +223,7 @@ async function readIdent(id, quiet) {
       log(`software id ${j.sw_id}`, "ok");
       if (j.keys) {
         const hx4 = v => "0x" + v.toString(16).toUpperCase().padStart(4, "0");
-        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)} (put these in reference/seedkey.json under ZB ${$("#zb").textContent.replace(/^ZB /, "") || "<zb>"})</div>`;
+        h += `<div class="note" style="color:var(--mut)">$27 key constants from this block, used for the unlocks unless seedkey.json overrides them: afb9e ${hx4(j.keys.afb9e)}, afb10 ${hx4(j.keys.afb10)}</div>`;
         log(`key constants from ident: afb9e ${hx4(j.keys.afb9e)} afb10 ${hx4(j.keys.afb10)}`, "ok");
       }
     } else {
